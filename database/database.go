@@ -51,7 +51,8 @@ func InsertMany(client mongo.Client, database string, collection string, documen
 		fmt.Println("ERROR DURING InsertMany")
 		log.Fatal(err)
 	}
-	fmt.Println(result.InsertedIDs...)
+	// fmt.Println(result.InsertedIDs...)
+	fmt.Printf("Insert %d documents\n", len(result.InsertedIDs))
 }
 
 func Query(client mongo.Client, database string, collection string, filter bson.D) *mongo.Cursor {
