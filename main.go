@@ -85,6 +85,18 @@ func json2Cve(paths []string) []model.Cve {
 	return cves
 }
 
+func groupCveByYear(cves []model.Cve) map[string][]model.Cve {
+	result := make(map[string][]model.Cve)
+	for _, cve := range cves {
+		year := cve.GetYear()
+		if _, ok := result[year]; !ok {
+			result[year] = []model.Cve{}
+		}
+		result[year] = append(result[year], cve)
+	}
+	return result
+}
+
 func main() {
 	cveFilePaths := localCves()
 
@@ -92,27 +104,58 @@ func main() {
 	// cves := json2Cve(nil) // DEBUG Purposes
 	fmt.Printf("Total: %d CVEs loaded\n", len(cves))
 
-	if len(cves) > 0 {
+	cveGroup := groupCveByYear(cves)
+	// fmt.Println(len(cveGroup))
+
+	// for k, v := range cveGroup {
+	// 	fmt.Printf("%s: %d\n", k, len(v))
+	// }
+
+	if len(cveGroup) > 0 {
 		client := db.Connect("")
 
 		// insert many
-		var bDocs []interface{}
-		for _, c := range cves {
-			var bdoc interface{}
-			bdoc, err := bson.Marshal(c)
-			if err != nil {
-				log.Fatal(err)
+		for k, v := range cveGroup {
+			var bDocs []interface{}
+			for _, c := range v {
+				var bdoc interface{}
+				bdoc, err := bson.Marshal(c)
+				if err != nil {
+					log.Fatal(err)
+				}
+				bDocs = append(bDocs, bdoc)
 			}
-			bDocs = append(bDocs, bdoc)
+			//! InsertMany sometime stop/pause inserting
+			//! Two Errors:
+			//! 1.unable to write wire message to network: write tcp [::1]:60067->[::1]:27100: write: broken pipe
+			//! 2.socket was unexpectedly closed: EOF
+			//! Errors disappear on 16/05/2024, keep this comment for reference
+			db.InsertMany(*client, "dev1", k, bDocs)
 		}
-
-		//! InsertMany sometime stop/pause inserting
-		//! Two Errors:
-		//! 1.unable to write wire message to network: write tcp [::1]:60067->[::1]:27100: write: broken pipe
-		//! 2.socket was unexpectedly closed: EOF
-		//! Errors disappear on 16/05/2024, keep this comment for reference
-		db.InsertMany(*client, "test1", "pulled", bDocs)
-
 		defer db.Disconnect(*client)
 	}
+
+	// if len(cves) > 0 {
+	// 	client := db.Connect("")
+
+	// 	// insert many
+	// 	var bDocs []interface{}
+	// 	for _, c := range cves {
+	// 		var bdoc interface{}
+	// 		bdoc, err := bson.Marshal(c)
+	// 		if err != nil {
+	// 			log.Fatal(err)
+	// 		}
+	// 		bDocs = append(bDocs, bdoc)
+	// 	}
+
+	//! InsertMany sometime stop/pause inserting
+	//! Two Errors:
+	//! 1.unable to write wire message to network: write tcp [::1]:60067->[::1]:27100: write: broken pipe
+	//! 2.socket was unexpectedly closed: EOF
+	//! Errors disappear on 16/05/2024, keep this comment for reference
+	// 	db.InsertMany(*client, "test1", "pulled", bDocs)
+
+	// 	defer db.Disconnect(*client)
+	// }
 }
