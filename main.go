@@ -63,61 +63,51 @@ func readJson(path string) []byte {
 	return data
 }
 
-// json2Cve reads JSON files from the provided paths, unmarshals them into model.Cve objects, and returns a slice of model.Cve.
+// json2Cve generates a map of CVEs grouped by year from the given list of file paths.
 //
-// paths: a slice of strings representing the file paths of the JSON files to read.
-// []model.Cve: a slice of model.Cve objects unmarshaled from the JSON files.
-func json2Cve(paths []string) []model.Cve {
-	var cves []model.Cve
+// paths: a slice of strings representing file paths to JSON files containing CVE data.
+// map[string][]model.Cve: a map where the keys are years and the values are slices of model.Cve structs.
+func json2Cve(paths []string) map[string][]model.Cve {
+	var cveMap map[string][]model.Cve = make(map[string][]model.Cve)
 
 	// read JSON files => unmarshal into `cve` => store in `cves`
 	for _, path := range paths {
 		data := readJson(path)
 
-		var cveJson *model.Cve = new(model.Cve)
-		if err := json.Unmarshal(data, cveJson); err != nil {
+		var cve *model.Cve = new(model.Cve)
+		if err := json.Unmarshal(data, cve); err != nil {
 			fmt.Printf("Unable to parse JSON file: %s\nError: %s\n", path, err)
 			continue
 		}
-		cves = append(cves, *cveJson)
-	}
-
-	return cves
-}
-
-func groupCveByYear(cves []model.Cve) map[string][]model.Cve {
-	result := make(map[string][]model.Cve)
-	for _, cve := range cves {
+		// group cve by year
 		year := cve.GetYear()
-		if _, ok := result[year]; !ok {
-			result[year] = []model.Cve{}
+		if _, ok := cveMap[year]; !ok {
+			cveMap[year] = []model.Cve{}
 		}
-		result[year] = append(result[year], cve)
+		cveMap[year] = append(cveMap[year], *cve)
 	}
-	return result
+
+	return cveMap
 }
 
 func main() {
 	cveFilePaths := localCves()
 
 	cves := json2Cve(cveFilePaths)
-	// cves := json2Cve(nil) // DEBUG Purposes
-	fmt.Printf("Total: %d CVEs loaded\n", len(cves))
+	var count int = 0
+	for _, v := range cves {
+		count += len(v)
+	}
+	fmt.Printf("Total: %d CVEs loaded \n", count)
 
-	cveGroup := groupCveByYear(cves)
-	// fmt.Println(len(cveGroup))
-
-	// for k, v := range cveGroup {
-	// 	fmt.Printf("%s: %d\n", k, len(v))
-	// }
-
-	if len(cveGroup) > 0 {
+	if len(cves) > 0 {
 		client := db.Connect("")
+		defer db.Disconnect(*client)
 
 		// insert many
-		for k, v := range cveGroup {
+		for year, cve := range cves {
 			var bDocs []interface{}
-			for _, c := range v {
+			for _, c := range cve {
 				var bdoc interface{}
 				bdoc, err := bson.Marshal(c)
 				if err != nil {
@@ -130,32 +120,8 @@ func main() {
 			//! 1.unable to write wire message to network: write tcp [::1]:60067->[::1]:27100: write: broken pipe
 			//! 2.socket was unexpectedly closed: EOF
 			//! Errors disappear on 16/05/2024, keep this comment for reference
-			db.InsertMany(*client, "dev1", k, bDocs)
+			// TODO: make database configable through cmd line arguments
+			db.InsertMany(*client, "dev3", year, bDocs)
 		}
-		defer db.Disconnect(*client)
 	}
-
-	// if len(cves) > 0 {
-	// 	client := db.Connect("")
-
-	// 	// insert many
-	// 	var bDocs []interface{}
-	// 	for _, c := range cves {
-	// 		var bdoc interface{}
-	// 		bdoc, err := bson.Marshal(c)
-	// 		if err != nil {
-	// 			log.Fatal(err)
-	// 		}
-	// 		bDocs = append(bDocs, bdoc)
-	// 	}
-
-	//! InsertMany sometime stop/pause inserting
-	//! Two Errors:
-	//! 1.unable to write wire message to network: write tcp [::1]:60067->[::1]:27100: write: broken pipe
-	//! 2.socket was unexpectedly closed: EOF
-	//! Errors disappear on 16/05/2024, keep this comment for reference
-	// 	db.InsertMany(*client, "test1", "pulled", bDocs)
-
-	// 	defer db.Disconnect(*client)
-	// }
 }

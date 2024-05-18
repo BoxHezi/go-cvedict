@@ -52,7 +52,7 @@ func InsertMany(client mongo.Client, database string, collection string, documen
 		log.Fatal(err)
 	}
 	// fmt.Println(result.InsertedIDs...)
-	fmt.Printf("Insert %d documents\n", len(result.InsertedIDs))
+	fmt.Printf("[INFO] Database: %s, Insert %d documents to Collection: %s\n", database, len(result.InsertedIDs), collection)
 }
 
 func Query(client mongo.Client, database string, collection string, filter bson.D) *mongo.Cursor {
