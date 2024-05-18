@@ -15,8 +15,12 @@ import (
 )
 
 func filterFiles(files []string, path string, pattern string) []string {
+	if pattern == "" {
+		panic("Please provide pattern")
+	}
+
 	var filteredFiles []string = []string{}
-	if files != nil {
+	if path == "" {
 		// when new files are pulled
 		for _, f := range files {
 			match, err := filepath.Match(pattern, filepath.Base(f))
@@ -27,7 +31,7 @@ func filterFiles(files []string, path string, pattern string) []string {
 				filteredFiles = append(filteredFiles, localRepoPath()+"/"+f)
 			}
 		}
-	} else if path != "" {
+	} else if files == nil {
 		// when repo is cloned
 		err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -43,8 +47,6 @@ func filterFiles(files []string, path string, pattern string) []string {
 		if err != nil {
 			log.Fatal(err)
 		}
-	} else if pattern == "" {
-		panic("Please provide pattern")
 	}
 	return filteredFiles
 }
@@ -63,12 +65,12 @@ func readJson(path string) []byte {
 	return data
 }
 
-// json2Cve generates a map of CVEs grouped by year from the given list of file paths.
+// json2CveGroup generates a map of CVEs grouped by year from the given list of file paths.
 //
 // paths: a slice of strings representing file paths to JSON files containing CVE data.
 // map[string][]model.Cve: a map where the keys are years and the values are slices of model.Cve structs.
-func json2Cve(paths []string) map[string][]model.Cve {
-	var cveMap map[string][]model.Cve = make(map[string][]model.Cve)
+func json2CveGroup(paths []string) map[string][]model.Cve {
+	var cveGroup map[string][]model.Cve = make(map[string][]model.Cve)
 
 	// read JSON files => unmarshal into `cve` => store in `cves`
 	for _, path := range paths {
@@ -81,31 +83,31 @@ func json2Cve(paths []string) map[string][]model.Cve {
 		}
 		// group cve by year
 		year := cve.GetYear()
-		if _, ok := cveMap[year]; !ok {
-			cveMap[year] = []model.Cve{}
+		if _, ok := cveGroup[year]; !ok {
+			cveGroup[year] = []model.Cve{}
 		}
-		cveMap[year] = append(cveMap[year], *cve)
+		cveGroup[year] = append(cveGroup[year], *cve)
 	}
 
-	return cveMap
+	return cveGroup
 }
 
 func main() {
 	cveFilePaths := localCves()
 
-	cves := json2Cve(cveFilePaths)
+	cveGroup := json2CveGroup(cveFilePaths)
 	var count int = 0
-	for _, v := range cves {
+	for _, v := range cveGroup {
 		count += len(v)
 	}
 	fmt.Printf("Total: %d CVEs loaded \n", count)
 
-	if len(cves) > 0 {
+	if len(cveGroup) > 0 {
 		client := db.Connect("")
 		defer db.Disconnect(*client)
 
 		// insert many
-		for year, cve := range cves {
+		for year, cve := range cveGroup {
 			var bDocs []interface{}
 			for _, c := range cve {
 				var bdoc interface{}
@@ -120,8 +122,8 @@ func main() {
 			//! 1.unable to write wire message to network: write tcp [::1]:60067->[::1]:27100: write: broken pipe
 			//! 2.socket was unexpectedly closed: EOF
 			//! Errors disappear on 16/05/2024, keep this comment for reference
-			// TODO: make database configable through cmd line arguments
-			db.InsertMany(*client, "dev3", year, bDocs)
+			// TODO: make database configureable through cmd line arguments
+			db.InsertMany(*client, "dev5", year, bDocs)
 		}
 	}
 }

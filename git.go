@@ -66,6 +66,10 @@ func getUpdatedFiles(oldCommit, newCommit *object.Commit) []string {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// TODO: separate modified, deleted, added files
+	// modified: update database
+	// deleted: delete data from database
+	// added: insert to database
 	var files []string
 	for _, filePatch := range patch.FilePatches() {
 		from, to := filePatch.Files()
@@ -104,7 +108,7 @@ func localCves() []string {
 		}
 
 		err = pull(repo)
-		if err != git.NoErrAlreadyUpToDate { // new pushs found
+		if err != git.NoErrAlreadyUpToDate { // new commits found
 			newHash, err := getCurrentHash(repo)
 			if err != nil {
 				log.Fatal(err)
