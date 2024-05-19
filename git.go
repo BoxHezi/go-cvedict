@@ -14,6 +14,10 @@ const (
 	gitRepoUrl      = "https://github.com/fkie-cad/nvd-json-data-feeds.git"
 	localDirSuffix  = "/.config/cvedb/nvdcve"
 	filenamePattern = "CVE-*.json"
+
+	statusModified = "modified"
+	statusDeleted  = "deleted"
+	statusAdded    = "added"
 )
 
 func localRepoPath() string {
@@ -29,7 +33,7 @@ func cloneRepo(localPath string) (*git.Repository, error) {
 	repo, err := git.PlainClone(localPath, false, &git.CloneOptions{
 		URL:      gitRepoUrl,
 		Progress: os.Stdout,
-		Depth:    1,
+		// Depth:    1,
 	})
 
 	if err == git.ErrRepositoryAlreadyExists {
@@ -54,6 +58,7 @@ func pull(repo *git.Repository) error {
 
 	err = wt.Pull(&git.PullOptions{
 		Progress: os.Stdout,
+		// Depth:    1,
 	})
 
 	// err: git.NoErrAlreadyUpToDate => local repo is up to date
@@ -61,27 +66,37 @@ func pull(repo *git.Repository) error {
 	return err
 }
 
-func getUpdatedFiles(oldCommit, newCommit *object.Commit) []string {
+func getUpdatedFiles(oldCommit, newCommit *object.Commit) map[string][]string {
 	patch, err := oldCommit.Patch(newCommit)
 	if err != nil {
 		log.Fatal(err)
 	}
-	// TODO: separate modified, deleted, added files
+
 	// modified: update database
 	// deleted: delete data from database
 	// added: insert to database
-	var files []string
+	var statusMap = make(map[string][]string)
+
 	for _, filePatch := range patch.FilePatches() {
 		from, to := filePatch.Files()
-		if from != nil && to != nil {
-			files = append(files, to.Path()) // modified
-		} else if from != nil {
-			files = append(files, from.Path()) // deleted
-		} else if to != nil {
-			files = append(files, to.Path()) // added
+		if from != nil && to != nil { // modified
+			if _, ok := statusMap[statusModified]; !ok {
+				statusMap[statusModified] = []string{}
+			}
+			statusMap[statusModified] = append(statusMap[statusModified], to.Path())
+		} else if from != nil { // deleted
+			if _, ok := statusMap[statusDeleted]; !ok {
+				statusMap[statusDeleted] = []string{}
+			}
+			statusMap[statusDeleted] = append(statusMap[statusDeleted], from.Path())
+		} else if to != nil { // added
+			if _, ok := statusMap[statusAdded]; !ok {
+				statusMap[statusAdded] = []string{}
+			}
+			statusMap[statusAdded] = append(statusMap[statusAdded], to.Path())
 		}
 	}
-	return files[:]
+	return statusMap
 }
 
 func getCurrentHash(repo *git.Repository) (*plumbing.Hash, error) {
@@ -92,12 +107,9 @@ func getCurrentHash(repo *git.Repository) (*plumbing.Hash, error) {
 	return hash, nil
 }
 
-// localCves retrieves a list of CVE file paths based on changes in the local repository.
-//
-// No parameters.
-// Returns a slice of strings representing the file paths.
-func localCves() []string {
-	var cveFiles []string = []string{}
+// TODO: make it return a map with status (modified, deleted, added) as key, list of CVE JSON path as value
+func localCveSummary() map[string][]string {
+	var cveFiles = make(map[string][]string)
 	repo, err := cloneRepo(localRepoPath())
 
 	if err == git.ErrRepositoryAlreadyExists {
@@ -108,20 +120,28 @@ func localCves() []string {
 		}
 
 		err = pull(repo)
-		if err != git.NoErrAlreadyUpToDate { // new commits found
+		if err == nil { // new commits found
 			newHash, err := getCurrentHash(repo)
 			if err != nil {
 				log.Fatal(err)
 			}
 			oldCommit, _ := repo.CommitObject(*oldHash)
 			newCommit, _ := repo.CommitObject(*newHash)
+			// cveFiles = getUpdatedFiles(oldCommit, newCommit)
+			// cveFiles = filterFiles(cveFiles, "", filenamePattern)
+
 			cveFiles = getUpdatedFiles(oldCommit, newCommit)
-			cveFiles = filterFiles(cveFiles, "", filenamePattern)
-		} else { // up-to-date
-			fmt.Println(git.NoErrAlreadyUpToDate)
+			cveFiles[statusModified] = filterFiles(cveFiles[statusModified], "", filenamePattern)
+			cveFiles[statusDeleted] = filterFiles(cveFiles[statusDeleted], "", filenamePattern)
+			cveFiles[statusAdded] = filterFiles(cveFiles[statusAdded], "", filenamePattern)
+		} else if err == git.NoErrAlreadyUpToDate { // up-to-date
+			fmt.Println(err)
+		} else { // other error
+			log.Fatal(err)
 		}
 	} else { // fresh clone
-		cveFiles = filterFiles(nil, localRepoPath(), filenamePattern)
+		// cveFiles = filterFiles(nil, localRepoPath(), filenamePattern)
+		cveFiles[statusAdded] = filterFiles(nil, localRepoPath(), filenamePattern)
 	}
 
 	return cveFiles

@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"go.mongodb.org/mongo-driver/bson"
+	// "go.mongodb.org/mongo-driver/bson"
 
 	db "cve-dict/database"
 	"cve-dict/model"
@@ -65,12 +65,13 @@ func readJson(path string) []byte {
 	return data
 }
 
-// json2CveGroup generates a map of CVEs grouped by year from the given list of file paths.
+// json2Cve generates a map of CVEs grouped by year from the given list of file paths.
 //
 // paths: a slice of strings representing file paths to JSON files containing CVE data.
 // map[string][]model.Cve: a map where the keys are years and the values are slices of model.Cve structs.
-func json2CveGroup(paths []string) map[string][]model.Cve {
-	var cveGroup map[string][]model.Cve = make(map[string][]model.Cve)
+func json2Cve(paths []string) []model.Cve {
+	// var cveGroup map[string][]model.Cve = make(map[string][]model.Cve)
+	var cves []model.Cve = []model.Cve{}
 
 	// read JSON files => unmarshal into `cve` => store in `cves`
 	for _, path := range paths {
@@ -81,49 +82,58 @@ func json2CveGroup(paths []string) map[string][]model.Cve {
 			fmt.Printf("Unable to parse JSON file: %s\nError: %s\n", path, err)
 			continue
 		}
-		// group cve by year
-		year := cve.GetYear()
-		if _, ok := cveGroup[year]; !ok {
-			cveGroup[year] = []model.Cve{}
-		}
-		cveGroup[year] = append(cveGroup[year], *cve)
+		cves = append(cves, *cve)
 	}
 
-	return cveGroup
+	return cves
 }
 
 func main() {
-	cveFilePaths := localCves()
+	cveFilePaths := localCveSummary()
+	// fmt.Printf("New CVEs: %d\n", len(cveFilePaths[statusAdded]))
+	// fmt.Printf("Modified CVEs: %d\n", len(cveFilePaths[statusModified]))
+	// fmt.Printf("Deleted CVEs: %d\n", len(cveFilePaths[statusDeleted]))
 
-	cveGroup := json2CveGroup(cveFilePaths)
-	var count int = 0
-	for _, v := range cveGroup {
-		count += len(v)
+	fmt.Println("Added CVEs:")
+	for _, path := range cveFilePaths[statusAdded] {
+		fmt.Println(path)
 	}
-	fmt.Printf("Total: %d CVEs loaded \n", count)
-
-	if len(cveGroup) > 0 {
-		client := db.Connect("")
-		defer db.Disconnect(*client)
-
-		// insert many
-		for year, cve := range cveGroup {
-			var bDocs []interface{}
-			for _, c := range cve {
-				var bdoc interface{}
-				bdoc, err := bson.Marshal(c)
-				if err != nil {
-					log.Fatal(err)
-				}
-				bDocs = append(bDocs, bdoc)
-			}
-			//! InsertMany sometime stop/pause inserting
-			//! Two Errors:
-			//! 1.unable to write wire message to network: write tcp [::1]:60067->[::1]:27100: write: broken pipe
-			//! 2.socket was unexpectedly closed: EOF
-			//! Errors disappear on 16/05/2024, keep this comment for reference
-			// TODO: make database configureable through cmd line arguments
-			db.InsertMany(*client, "dev5", year, bDocs)
-		}
+	fmt.Println("Modified CVEs:")
+	for _, path := range cveFilePaths[statusModified] {
+		fmt.Println(path)
 	}
+	fmt.Println("Deleted CVEs:")
+	for _, path := range cveFilePaths[statusDeleted] {
+		fmt.Println(path)
+	}
+
+	// TODO: 1. Modified CVE => update database
+	// TODO: 2. Deleted CVE => delete from database
+	// TODO: 3. Added CVE => insert to database
+
+	// cves := json2Cve(cveFilePaths)
+	// fmt.Printf("Total: %d CVEs loaded\n", len(cves))
+
+	// if len(cves) > 0 {
+	// 	client := db.Connect("")
+	// 	defer db.Disconnect(*client)
+
+	// 	var bDocs []interface{}
+	// 	for _, c := range cves {
+	// 		var bdoc interface{}
+	// 		bdoc, err := bson.Marshal(c)
+	// 		if err != nil {
+	// 			log.Fatal(err)
+	// 		}
+	// 		bDocs = append(bDocs, bdoc)
+	// 	}
+	// 	//! InsertMany sometime stop/pause inserting
+	// 	//! Two Errors:
+	// 	//! 1.unable to write wire message to network: write tcp [::1]:60067->[::1]:27100: write: broken pipe
+	// 	//! 2.socket was unexpectedly closed: EOF
+	// 	//! Errors disappear on 16/05/2024, keep this comment for reference
+	// 	db.InsertMany(*client, "dev1", "cve", bDocs)
+	// }
+
+	db.Disconnect(*db.Connect(""))
 }

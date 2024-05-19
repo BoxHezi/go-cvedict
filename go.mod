@@ -1,6 +1,6 @@
 module cve-dict
 
-go 1.22.2
+go 1.21.10
 
 require github.com/go-git/go-git/v5 v5.12.0
 require go.mongodb.org/mongo-driver v1.15.0
