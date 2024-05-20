@@ -61,7 +61,8 @@ func UpdateOne(client mongo.Client, database, collection, cveId string, document
 
 	col := client.Database(database).Collection(collection)
 	filter := bson.D{{Key: "id", Value: cveId}}
-	_, err := col.UpdateOne(ctx, filter, document)
+	update := bson.D{{Key: "$set", Value: document}}
+	_, err := col.UpdateOne(ctx, filter, update)
 	if err != nil {
 		log.Fatal(err)
 	}
