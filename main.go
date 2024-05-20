@@ -6,50 +6,11 @@ import (
 	"io"
 	"log"
 	"os"
-	"path/filepath"
-
-	// "go.mongodb.org/mongo-driver/bson"
 
 	db "cve-dict/database"
-	"cve-dict/model"
+	model "cve-dict/model"
+	git "cve-dict/services"
 )
-
-func filterFiles(files []string, path string, pattern string) []string {
-	if pattern == "" {
-		panic("Please provide pattern")
-	}
-
-	var filteredFiles []string = []string{}
-	if path == "" {
-		// when new files are pulled
-		for _, f := range files {
-			match, err := filepath.Match(pattern, filepath.Base(f))
-			if err != nil {
-				log.Fatal(err)
-			}
-			if match {
-				filteredFiles = append(filteredFiles, localRepoPath()+"/"+f)
-			}
-		}
-	} else if files == nil {
-		// when repo is cloned
-		err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			match, _ := filepath.Match(pattern, filepath.Base(path))
-			if match {
-				filteredFiles = append(filteredFiles, path)
-			}
-
-			return nil
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-	return filteredFiles
-}
 
 func readJson(path string) []byte {
 	file, err := os.Open(path)
@@ -89,51 +50,39 @@ func json2Cve(paths []string) []model.Cve {
 }
 
 func main() {
-	cveFilePaths := localCveSummary()
-	// fmt.Printf("New CVEs: %d\n", len(cveFilePaths[statusAdded]))
-	// fmt.Printf("Modified CVEs: %d\n", len(cveFilePaths[statusModified]))
-	// fmt.Printf("Deleted CVEs: %d\n", len(cveFilePaths[statusDeleted]))
+	cves := git.InitLocalRepo()
 
-	fmt.Println("Added CVEs:")
-	for _, path := range cveFilePaths[statusAdded] {
-		fmt.Println(path)
+	modifiedCves := json2Cve(cves[git.Modified])
+	deletedCves := json2Cve(cves[git.Deleted])
+	addedCves := json2Cve(cves[git.Added])
+
+	fmt.Printf("New CVEs: %d\n", len(addedCves))
+	fmt.Printf("Modified CVEs: %d\n", len(modifiedCves))
+	fmt.Printf("Deleted CVEs: %d\n", len(deletedCves))
+
+	client := db.Connect("")
+	defer db.Disconnect(*client)
+
+	// insert new CVEs
+	if len(addedCves) > 0 {
+		var bDocs []interface{}
+		for _, c := range addedCves {
+			bDocs = append(bDocs, c)
+		}
+		db.InsertMany(*client, "dev1", "cve", bDocs)
 	}
-	fmt.Println("Modified CVEs:")
-	for _, path := range cveFilePaths[statusModified] {
-		fmt.Println(path)
+
+	// update modified CVEs
+	if len(modifiedCves) > 0 {
+		for _, c := range modifiedCves {
+			db.UpdateOne(*client, "dev1", "cve", c.Id, c)
+		}
 	}
-	fmt.Println("Deleted CVEs:")
-	for _, path := range cveFilePaths[statusDeleted] {
-		fmt.Println(path)
+
+	// delete deleted CVEs
+	if len(deletedCves) > 0 {
+		for _, c := range deletedCves {
+			db.DeleteOne(*client, "dev1", "cve", c.Id)
+		}
 	}
-
-	// TODO: 1. Modified CVE => update database
-	// TODO: 2. Deleted CVE => delete from database
-	// TODO: 3. Added CVE => insert to database
-
-	// cves := json2Cve(cveFilePaths)
-	// fmt.Printf("Total: %d CVEs loaded\n", len(cves))
-
-	// if len(cves) > 0 {
-	// 	client := db.Connect("")
-	// 	defer db.Disconnect(*client)
-
-	// 	var bDocs []interface{}
-	// 	for _, c := range cves {
-	// 		var bdoc interface{}
-	// 		bdoc, err := bson.Marshal(c)
-	// 		if err != nil {
-	// 			log.Fatal(err)
-	// 		}
-	// 		bDocs = append(bDocs, bdoc)
-	// 	}
-	// 	//! InsertMany sometime stop/pause inserting
-	// 	//! Two Errors:
-	// 	//! 1.unable to write wire message to network: write tcp [::1]:60067->[::1]:27100: write: broken pipe
-	// 	//! 2.socket was unexpectedly closed: EOF
-	// 	//! Errors disappear on 16/05/2024, keep this comment for reference
-	// 	db.InsertMany(*client, "dev1", "cve", bDocs)
-	// }
-
-	db.Disconnect(*db.Connect(""))
 }

@@ -110,9 +110,6 @@ func getUpdatedFiles(oldCommit, newCommit *object.Commit) map[string][]string {
 		log.Fatal(err)
 	}
 
-	// modified: update database
-	// deleted: delete data from database
-	// added: insert to database
 	var statusMap = make(map[string][]string)
 
 	for _, filePatch := range patch.FilePatches() {
@@ -157,7 +154,9 @@ func getCurrentHash(repo *git.Repository) (*plumbing.Hash, error) {
 // - map[string][]string: A map of updated files, where the keys represent the status of the files and the values are slices of file paths.
 func InitLocalRepo() map[string][]string {
 	var cveFiles = make(map[string][]string)
+	// fmt.Printf("Start cloning repo... %s\n", time.Now())
 	repo, err := cloneRepo(localRepoPath())
+	// fmt.Printf("Done cloning repo... %s\n", time.Now())
 
 	if err == git.ErrRepositoryAlreadyExists {
 		fmt.Println("Repository already exists, pulling from remote...")
