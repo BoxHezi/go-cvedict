@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -22,22 +23,62 @@ func constructUrlByIndex(index int) string {
 	return fmt.Sprintf(nvdUrl+"?startIndex=%d", index)
 }
 
+func nvdKey() string {
+	return os.Getenv("NVD_KEY")
+}
+
+func waitForNextRequest(start, end time.Time, hasKey bool) {
+	duration := end.Sub(start)
+	waitBase := 6 * time.Second
+
+	if hasKey {
+		waitBase = 1 * time.Second
+	}
+
+	// fmt.Printf("Duration: %v\n", duration)
+	// fmt.Printf("WaitBase: %v\n", waitBase)
+	if duration < waitBase {
+		waiting := (waitBase - duration).Seconds()
+		fmt.Printf("Wait for %f seconds\n", waiting)
+		time.Sleep(waitBase - duration)
+	}
+}
+
+func sendQuery(index int, hasKey bool) *http.Response {
+	tempUrl := constructUrlByIndex(index)
+	fmt.Println(currentHourMinuteSecond(), " ", tempUrl)
+
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", tempUrl, nil)
+	if hasKey {
+		req.Header.Set("apiKey", nvdKey())
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return resp
+}
+
 func FetchAll() {
 	var index int = 0
 	var totalResults int = 0
 	var count int = 0
 
-	fmt.Println(currentHourMinuteSecond())
-	for {
-		tempUrl := constructUrlByIndex(index)
-		fmt.Println(currentHourMinuteSecond(), " ", tempUrl)
+	var hasKey bool = false
+	key := nvdKey()
+	if key != "" {
+		hasKey = true
+		fmt.Println(key)
+	} else {
+		fmt.Println("No NVD key found")
+	}
 
-		// Query NVD API
-		data, err := http.Get(tempUrl)
-		if err != nil {
-			log.Fatal(err)
-		}
-		// defer data.Body.Close()
+	fmt.Println(currentHourMinuteSecond())
+	start := time.Now()
+	for {
+		// Send Request
+		data := sendQuery(index, hasKey)
 		t1 := time.Now()
 		// fmt.Println(t1)
 
@@ -49,17 +90,13 @@ func FetchAll() {
 		t2 := time.Now()
 		// fmt.Println(t2)
 
-		duration := t2.Sub(t1) // calculate time taken for: 1. send and receive request; 2. parse response
-		// fmt.Println("Duration: ", duration)
-		// fmt.Println("Duration: ", int(duration.Seconds()))
-
 		// Parse Response Body to CVE/JSON
 		var bodyJson map[string]interface{}
 		if err := json.Unmarshal(body, &bodyJson); err != nil {
 			log.Fatal(err)
 		}
 
-		tempVulns := bodyJson["vulnerabilities"].([]interface{})
+		tempVulns := bodyJson["vulnerabilities"].([]interface{}) // TODO: store all vulns into a slice/array
 		count += len(tempVulns)
 
 		// Get Total Results
@@ -72,14 +109,15 @@ func FetchAll() {
 		if index >= totalResults {
 			break
 		}
-		// time.Sleep(time.Second * 6)
-		// fmt.Println("Duration: ", duration)
-		if duration.Seconds() < 6 {
-			sleep := time.Duration(6 - int(duration.Seconds()))
-			// fmt.Printf("Wait for %d seconds\n", sleep)
-			time.Sleep(time.Second * sleep)
-		}
+
+		//
+		waitForNextRequest(t1, t2, hasKey)
 	}
 	fmt.Println(currentHourMinuteSecond())
 	fmt.Printf("Total %d CVEs fetched\n", count)
+
+	end := time.Now()
+
+	totalDuration := end.Sub(start)
+	fmt.Println("Total Duration: ", totalDuration)
 }
