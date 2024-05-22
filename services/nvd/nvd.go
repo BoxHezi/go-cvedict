@@ -27,11 +27,11 @@ func nvdKey() string {
 	return os.Getenv("NVD_KEY")
 }
 
-func waitForNextRequest(start, end time.Time, hasKey bool) {
+func waitForNextRequest(start, end time.Time, key string) {
 	duration := end.Sub(start)
 	waitBase := 6 * time.Second
 
-	if hasKey {
+	if key != "" {
 		waitBase = 1 * time.Second
 	}
 
@@ -44,13 +44,13 @@ func waitForNextRequest(start, end time.Time, hasKey bool) {
 	}
 }
 
-func sendQuery(index int, hasKey bool) *http.Response {
+func sendQuery(index int, key string) *http.Response {
 	tempUrl := constructUrlByIndex(index)
 	fmt.Println(currentHourMinuteSecond(), " ", tempUrl)
 
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", tempUrl, nil)
-	if hasKey {
+	if key != "" {
 		req.Header.Set("apiKey", nvdKey())
 	}
 	resp, err := client.Do(req)
@@ -65,20 +65,13 @@ func FetchAll() {
 	var totalResults int = 0
 	var count int = 0
 
-	var hasKey bool = false
 	key := nvdKey()
-	if key != "" {
-		hasKey = true
-		fmt.Println(key)
-	} else {
-		fmt.Println("No NVD key found")
-	}
 
 	fmt.Println(currentHourMinuteSecond())
 	start := time.Now()
 	for {
 		// Send Request
-		data := sendQuery(index, hasKey)
+		data := sendQuery(index, key)
 		t1 := time.Now()
 		// fmt.Println(t1)
 
@@ -111,7 +104,7 @@ func FetchAll() {
 		}
 
 		//
-		waitForNextRequest(t1, t2, hasKey)
+		waitForNextRequest(t1, t2, key)
 	}
 	fmt.Println(currentHourMinuteSecond())
 	fmt.Printf("Total %d CVEs fetched\n", count)
