@@ -7,9 +7,10 @@ import (
 	"log"
 	"os"
 
-	db "cve-dict/database"
 	model "cve-dict/model"
-	git "cve-dict/services"
+	db "cve-dict/services/database"
+	git "cve-dict/services/git"
+	nvd "cve-dict/services/nvd"
 )
 
 func readJson(path string) []byte {
@@ -50,6 +51,13 @@ func json2Cve(paths []string) []model.Cve {
 }
 
 func main() {
+	// TODO: add fetch data from NVD API directly
+	testNvd := true
+	if testNvd {
+		nvd.FetchAll()
+		return
+	}
+
 	cves := git.InitLocalRepo()
 
 	modifiedCves := json2Cve(cves[git.Modified])
