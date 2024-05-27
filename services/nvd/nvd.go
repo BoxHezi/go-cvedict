@@ -55,6 +55,7 @@ func sendQuery(index int, key string) *http.Response {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
+		fmt.Println("Error when sending request")
 		log.Fatal(err)
 	}
 	return resp
@@ -66,18 +67,22 @@ func FetchAll() {
 	var count int = 0
 
 	key := nvdKey()
+	fmt.Printf("NVD KEY: %s\n", key)
 
 	fmt.Println(currentHourMinuteSecond())
 	start := time.Now()
 	for {
-		// Send Request
-		data := sendQuery(index, key)
+		// TODO: test time usage for: 1. send request 2. read response body 3. parse response body
+
 		t1 := time.Now()
 		// fmt.Println(t1)
+		// Send Request
+		data := sendQuery(index, key)
 
 		// Read Response Body
 		body, err := io.ReadAll(data.Body) // time-consuming
 		if err != nil {
+			fmt.Println("Error when reading response body")
 			log.Fatal(err)
 		}
 		t2 := time.Now()
@@ -86,7 +91,13 @@ func FetchAll() {
 		// Parse Response Body to CVE/JSON
 		var bodyJson map[string]interface{}
 		if err := json.Unmarshal(body, &bodyJson); err != nil {
-			log.Fatal(err)
+			fmt.Printf("Error when parsing response body: %s\n", err)
+			// log.Fatal(err)
+			if e, ok := err.(*json.SyntaxError); ok {
+				fmt.Printf("Syntax error at byte offset %d\n", e.Offset)
+			}
+			time.Sleep(6 * time.Second)
+			continue
 		}
 
 		tempVulns := bodyJson["vulnerabilities"].([]interface{}) // TODO: store all vulns into a slice/array
@@ -111,6 +122,11 @@ func FetchAll() {
 
 	end := time.Now()
 
+	if key != "" {
+		fmt.Printf("With API Key - ")
+	} else {
+		fmt.Printf("Without API Key - ")
+	}
 	totalDuration := end.Sub(start)
 	fmt.Println("Total Duration: ", totalDuration)
 }
