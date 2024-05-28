@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	model "cve-dict/model"
 )
 
 const (
@@ -61,6 +63,23 @@ func sendQuery(index int, key string) *http.Response {
 	return resp
 }
 
+// TODO: move struct to model package
+// sturct for NVD response
+type nvdResp struct {
+	ResultsPerPage  int          `json:"resultsPerPage"`
+	StartIndex      int          `json:"startIndex"`
+	TotalResults    int          `json:"totalResults"`
+	Format          string       `json:"format"`
+	Version         string       `json:"version"`
+	Timestamp       string       `json:"timestamp"`
+	Vulnerabilities []nvdRespCve `json:"vulnerabilities"` // nvd response: list of CVE json object
+}
+
+type nvdRespCve struct {
+	// index int
+	Cve model.Cve `json:"cve"`
+}
+
 func FetchAll() {
 	var index int = 0
 	var totalResults int = 0
@@ -89,7 +108,8 @@ func FetchAll() {
 		// fmt.Println(t2)
 
 		// Parse Response Body to CVE/JSON
-		var bodyJson map[string]interface{}
+		// var bodyJson map[string]interface{}
+		var bodyJson nvdResp
 		if err := json.Unmarshal(body, &bodyJson); err != nil {
 			fmt.Printf("Error when parsing response body: %s\n", err)
 			// log.Fatal(err)
@@ -100,13 +120,13 @@ func FetchAll() {
 			continue
 		}
 
-		tempVulns := bodyJson["vulnerabilities"].([]interface{}) // TODO: store all vulns into a slice/array
+		tempVulns := bodyJson.Vulnerabilities // TODO: store all vulns into a slice/array
+		// fmt.Println(len(tempVulns))
+		// fmt.Println(tempVulns[0].Cve.CveSummary())
 		count += len(tempVulns)
 
 		// Get Total Results
-		if totalResults < int(bodyJson["totalResults"].(float64)) {
-			totalResults = int(bodyJson["totalResults"].(float64))
-		}
+		totalResults = bodyJson.TotalResults
 
 		data.Body.Close()
 		index += incremental
