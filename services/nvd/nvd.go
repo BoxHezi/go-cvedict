@@ -34,6 +34,7 @@ func waitForNextRequest(start, end time.Time, key string) {
 	waitBase := 6 * time.Second
 
 	if key != "" {
+		// NVD API rate limit is 0.6 request/second
 		waitBase = 1 * time.Second
 	}
 
@@ -63,82 +64,79 @@ func sendQuery(index int, key string) *http.Response {
 	return resp
 }
 
-// TODO: move struct to model package
-// sturct for NVD response
-type nvdResp struct {
-	ResultsPerPage  int          `json:"resultsPerPage"`
-	StartIndex      int          `json:"startIndex"`
-	TotalResults    int          `json:"totalResults"`
-	Format          string       `json:"format"`
-	Version         string       `json:"version"`
-	Timestamp       string       `json:"timestamp"`
-	Vulnerabilities []nvdRespCve `json:"vulnerabilities"` // nvd response: list of CVE json object
+func readRespBody(resp *http.Response) []byte {
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error when reading response body")
+		log.Fatal(err)
+	}
+	return body
 }
 
-type nvdRespCve struct {
-	// index int
-	Cve model.Cve `json:"cve"`
+func parseRespBody(body []byte) (model.NvdResp, error) {
+	var bodyJson model.NvdResp
+	if err := json.Unmarshal(body, &bodyJson); err != nil {
+		fmt.Printf("Error when parsing response body: %s\n", err)
+		if e, ok := err.(*json.SyntaxError); ok {
+			fmt.Printf("Syntax error at byte offset %d\n", e.Offset)
+		}
+		return model.NvdResp{}, err
+	}
+
+	return bodyJson, nil
+}
+
+func getCvesFromResp(bodyJson model.NvdResp) []model.Cve {
+	var cves []model.Cve = []model.Cve{}
+	for _, v := range bodyJson.Vulnerabilities {
+		cves = append(cves, v.Cve)
+	}
+	return cves
 }
 
 func FetchAll() {
 	var index int = 0
 	var totalResults int = 0
-	var count int = 0
+	var cves []model.Cve = []model.Cve{}
 
 	key := nvdKey()
-	fmt.Printf("NVD KEY: %s\n", key)
+	// fmt.Printf("NVD KEY: %s\n", key)
 
 	fmt.Println(currentHourMinuteSecond())
 	start := time.Now()
 	for {
-		// TODO: test time usage for: 1. send request 2. read response body 3. parse response body
-
 		t1 := time.Now()
-		// fmt.Println(t1)
 		// Send Request
-		data := sendQuery(index, key)
+		resp := sendQuery(index, key)
 
 		// Read Response Body
-		body, err := io.ReadAll(data.Body) // time-consuming
-		if err != nil {
-			fmt.Println("Error when reading response body")
-			log.Fatal(err)
-		}
+		body := readRespBody(resp)
 		t2 := time.Now()
-		// fmt.Println(t2)
 
-		// Parse Response Body to CVE/JSON
-		// var bodyJson map[string]interface{}
-		var bodyJson nvdResp
-		if err := json.Unmarshal(body, &bodyJson); err != nil {
+		// Parse Response Body to CVE/JSONs
+		bodyJson, err := parseRespBody(body)
+		if err != nil {
 			fmt.Printf("Error when parsing response body: %s\n", err)
-			// log.Fatal(err)
-			if e, ok := err.(*json.SyntaxError); ok {
-				fmt.Printf("Syntax error at byte offset %d\n", e.Offset)
-			}
+			fmt.Println("Wait for 6 seconds and try again...")
 			time.Sleep(6 * time.Second)
 			continue
 		}
 
-		tempVulns := bodyJson.Vulnerabilities // TODO: store all vulns into a slice/array
-		// fmt.Println(len(tempVulns))
-		// fmt.Println(tempVulns[0].Cve.CveSummary())
-		count += len(tempVulns)
+		cves = append(cves, getCvesFromResp(bodyJson)...) // store all vulns into a slice/arrays
 
-		// Get Total Results
 		totalResults = bodyJson.TotalResults
-
-		data.Body.Close()
+		resp.Body.Close()
 		index += incremental
 		if index >= totalResults {
 			break
 		}
 
-		//
-		waitForNextRequest(t1, t2, key)
+		waitForNextRequest(t1, t2, key) // NVD request rate limit: 6 seconds per request if without API key; 1 second per request if with API key
 	}
 	fmt.Println(currentHourMinuteSecond())
-	fmt.Printf("Total %d CVEs fetched\n", count)
+	fmt.Printf("Total %d CVEs fetched\n", totalResults)
+	fmt.Printf("len(cves): %d\n", len(cves))
+	// fmt.Printf("Total %d CVEs fetched\n", count)
 
 	end := time.Now()
 
