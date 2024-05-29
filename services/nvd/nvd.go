@@ -86,14 +86,6 @@ func parseRespBody(body []byte) (model.NvdResp, error) {
 	return bodyJson, nil
 }
 
-func getCvesFromResp(bodyJson model.NvdResp) []model.Cve {
-	var cves []model.Cve = []model.Cve{}
-	for _, v := range bodyJson.Vulnerabilities {
-		cves = append(cves, v.Cve)
-	}
-	return cves
-}
-
 func FetchAll() {
 	var index int = 0
 	var totalResults int = 0
@@ -122,7 +114,7 @@ func FetchAll() {
 			continue
 		}
 
-		cves = append(cves, getCvesFromResp(bodyJson)...) // store all vulns into a slice/arrays
+		cves = append(cves, bodyJson.UnpackCve()...) // store all vulns into a slice/arrays
 
 		totalResults = bodyJson.TotalResults
 		resp.Body.Close()
