@@ -51,7 +51,7 @@ func json2Cve(paths []string) []model.Cve {
 }
 
 func main() {
-	// TODO: add fetch data from NVD API directly
+	// add fetch data from NVD API directly
 	testNvd := true
 	if testNvd {
 		nvd.FetchAll()

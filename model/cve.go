@@ -1,6 +1,12 @@
 package model
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+)
 
 const (
 	YEAR_START_INX = 4
@@ -126,4 +132,39 @@ func (c Cve) CveSummary() string {
 
 func (c Cve) GetYear() string {
 	return c.Id[YEAR_START_INX:YEAR_END_IDX]
+}
+
+func (c Cve) GenerateFilename() string {
+	homedir, _ := os.UserHomeDir()
+	return fmt.Sprintf("%s/.nvdcve/%s%s.json", homedir, c.GenerateDirectoryName(), c.Id)
+}
+
+func (c Cve) GenerateDirectoryName() string {
+	year := c.GetYear()
+	suffix := "/" + c.Id[:len(c.Id)-2] + "xx/"
+	return fmt.Sprintf("%s%s", year, suffix)
+}
+
+func (c Cve) WriteToFile(filename string) {
+	parentDir := filepath.Dir(filename)
+	// create dir if not exists
+	if _, err := os.Stat(parentDir); os.IsNotExist(err) {
+		os.MkdirAll(parentDir, 0755)
+	}
+
+	file, err := os.Create(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	data, err := json.Marshal(c)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = os.WriteFile(filename, data, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

@@ -92,10 +92,9 @@ func FetchAll() {
 	var cves []model.Cve = []model.Cve{}
 
 	key := nvdKey()
-	// fmt.Printf("NVD KEY: %s\n", key)
 
-	fmt.Println(currentHourMinuteSecond())
-	start := time.Now()
+	fmt.Println(currentHourMinuteSecond(), " - ", "Start Fetching CVEs from NVD...")
+	// start := time.Now()
 	for {
 		t1 := time.Now()
 		// Send Request
@@ -125,18 +124,22 @@ func FetchAll() {
 
 		waitForNextRequest(t1, t2, key) // NVD request rate limit: 6 seconds per request if without API key; 1 second per request if with API key
 	}
-	fmt.Println(currentHourMinuteSecond())
+	fmt.Println(currentHourMinuteSecond(), " - ", "Done Fetching CVEs from NVD...")
 	fmt.Printf("Total %d CVEs fetched\n", totalResults)
-	fmt.Printf("len(cves): %d\n", len(cves))
+	// fmt.Printf("len(cves): %d\n", len(cves))
 	// fmt.Printf("Total %d CVEs fetched\n", count)
 
-	end := time.Now()
+	// end := time.Now()
 
-	if key != "" {
-		fmt.Printf("With API Key - ")
-	} else {
-		fmt.Printf("Without API Key - ")
+	// if key != "" {
+	// 	fmt.Printf("With API Key - ")
+	// } else {
+	// 	fmt.Printf("Without API Key - ")
+	// }
+	// totalDuration := end.Sub(start)
+	// fmt.Println("Total Duration: ", totalDuration)
+
+	for _, c := range cves {
+		c.WriteToFile(c.GenerateFilename())
 	}
-	totalDuration := end.Sub(start)
-	fmt.Println("Total Duration: ", totalDuration)
 }
