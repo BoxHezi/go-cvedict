@@ -1,24 +1,39 @@
 package model
 
-type NvdResp struct {
-	ResultsPerPage  int          `json:"resultsPerPage"`
-	StartIndex      int          `json:"startIndex"`
-	TotalResults    int          `json:"totalResults"`
-	Format          string       `json:"format"`
-	Version         string       `json:"version"`
-	Timestamp       string       `json:"timestamp"`
-	Vulnerabilities []nvdRespCve `json:"vulnerabilities"` // nvd response: list of CVE json object
+// https://services.nvd.nist.gov/rest/json/cves/2.0
+type NvdCvesResp struct {
+	ResultsPerPage  int      `json:"resultsPerPage"`
+	StartIndex      int      `json:"startIndex"`
+	TotalResults    int      `json:"totalResults"`
+	Format          string   `json:"format"`
+	Version         string   `json:"version"`
+	Timestamp       string   `json:"timestamp"`
+	Vulnerabilities []nvdCve `json:"vulnerabilities"` // nvd response: list of CVE json object
 }
 
-type nvdRespCve struct {
+type nvdCve struct {
 	Cve Cve `json:"cve"`
+}
+
+type NvdCvesHistoryResp struct {
+	ResultsPerPage int            `json:"resultsPerPage"`
+	StartIndex     int            `json:"startIndex"`
+	TotalResults   int            `json:"totalResults"`
+	Format         string         `json:"format"`
+	Version        string         `json:"version"`
+	Timestamp      string         `json:"timestamp"`
+	CveChanges     []nvdCveChange `json:"cveChanges"`
+}
+
+type nvdCveChange struct {
+	Change CveChange `json:"change"`
 }
 
 // UnpackCve returns a slice of Cve structs by unpacking the Cve field from each nvdRespCve struct in the Vulnerabilities field of the NvdResp struct.
 //
 // No parameters.
 // Returns a slice of Cve structs.
-func (n NvdResp) UnpackCve() []Cve {
+func (n NvdCvesResp) UnpackCve() []Cve {
 	var cves []Cve
 	for _, v := range n.Vulnerabilities {
 		cves = append(cves, v.Cve)

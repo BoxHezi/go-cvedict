@@ -3,9 +3,9 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
-	"path/filepath"
 )
 
 const (
@@ -88,12 +88,12 @@ type cvssdata struct {
 }
 
 type weakness struct {
-	Source       string        `json:"source"`
-	Type         string        `json:"type"`
-	Descriptions []weaknesDesc `json:"description"`
+	Source       string         `json:"source"`
+	Type         string         `json:"type"`
+	Descriptions []weaknessDesc `json:"description"`
 }
 
-type weaknesDesc struct {
+type weaknessDesc struct {
 	Lang  string `json:"lang"`
 	Value string `json:"value"`
 }
@@ -110,9 +110,11 @@ type node struct {
 }
 
 type cpeMatch struct {
-	Vulnerable      bool   `json:"vulnerable"`
-	Criteria        string `json:"criteria"`
-	MatchCriteriaId string `json:"matchCriteriaId"`
+	Vulnerable          bool   `json:"vulnerable"`
+	Criteria            string `json:"criteria"`
+	VersionEndIncluding string `json:"versionEndIncluding,omitempty"`
+	VersionEndExcluding string `json:"versionEndExcluding,omitempty"`
+	MatchCriteriaId     string `json:"matchCriteriaId"`
 }
 
 type reference struct {
@@ -121,11 +123,29 @@ type reference struct {
 	Tags   []string `json:"tags"`
 }
 
+// Cve Change
+type CveChange struct {
+	CveId            string   `json:"cveId"`
+	EventName        string   `json:"eventName"` // TODO: CVE Received, CVE Modified, Initial Analysis
+	CveChangeId      string   `json:"cveChangeId"`
+	SourceIdentifier string   `json:"sourceIdentifier"`
+	Created          string   `json:"created"`
+	Details          []detail `json:"details"`
+}
+
+type detail struct {
+	Action   string `json:"action"` // TODO: Added, Removed, Changed
+	Type     string `json:"type"`
+	OldValue string `json:"oldValue,omitempty"`
+	NewValue string `json:"newValue,omitempty"`
+}
+
 func (c Cve) CveSummary() string {
 	var content string = ""
 	content += fmt.Sprintf("ID: %s\n", c.Id)
 	content += fmt.Sprintf("Published: %s\n", c.Published)
 	content += fmt.Sprintf("Modified: %s\n", c.LastModified)
+	content += fmt.Sprintf("Status: %s\n", c.Status)
 
 	return content
 }
@@ -145,26 +165,23 @@ func (c Cve) GenerateDirectoryName() string {
 	return fmt.Sprintf("%s%s", year, suffix)
 }
 
-func (c Cve) WriteToFile(filename string) {
-	parentDir := filepath.Dir(filename)
-	// create dir if not exists
-	if _, err := os.Stat(parentDir); os.IsNotExist(err) {
-		os.MkdirAll(parentDir, 0755)
-	}
-
-	file, err := os.Create(filename)
+func (c Cve) ApplyUpdate(change CveChange) {
+	filepath := c.GenerateFilename()
+	file, err := os.Open(filepath)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer file.Close()
 
-	data, err := json.Marshal(c)
+	data, err := io.ReadAll(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var content Cve
+	err = json.Unmarshal(data, &content)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = os.WriteFile(filename, data, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
+	fmt.Println(content)
 }
