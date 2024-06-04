@@ -10,7 +10,6 @@ import (
 	"time"
 
 	model "cve-dict/model"
-	cveServices "cve-dict/services/cve"
 )
 
 const (
@@ -25,8 +24,8 @@ func currentHourMinuteSecond() string {
 func constructUrl(param map[string]string) string {
 	var endpoint string = nvdUrl
 
-	var p string
-	var c int // counter
+	var p string // parameters string
+	var c int    // counter
 	for k, v := range param {
 		if c > 0 {
 			p += "&"
@@ -94,7 +93,7 @@ func parseRespBody(body []byte) (model.NvdCvesResp, error) {
 	return bodyJson, nil
 }
 
-func FetchAll() []model.Cve {
+func fetchAll() []model.Cve {
 	var index int = 0
 	var totalResults int = 0
 	var cves []model.Cve = []model.Cve{}
@@ -133,9 +132,9 @@ func FetchAll() []model.Cve {
 
 		waitForNextRequest(t1, t2, key) // NVD request rate limit: 6 seconds per request if without API key; 1 second per request if with API key
 	}
-	fmt.Println(currentHourMinuteSecond(), " - ", "Done Fetching CVEs from NVD...")
+	fmt.Println(currentHourMinuteSecond(), "-", "Done Fetching CVEs from NVD...")
 	fmt.Printf("Total %d CVEs fetched\n", totalResults)
-	// fmt.Printf("len(cves): %d\n", len(cves))
+	fmt.Printf("len(cves): %d\n", len(cves))
 	// fmt.Printf("Total %d CVEs fetched\n", count)
 
 	// end := time.Now()
@@ -148,23 +147,17 @@ func FetchAll() []model.Cve {
 	// totalDuration := end.Sub(start)
 	// fmt.Println("Total Duration: ", totalDuration)
 
-	for _, c := range cves {
-		// c.WriteToFile(c.GenerateFilename())
-		cveServices.WriteToFile(c, "")
-	}
-
 	return cves
 }
 
-func FetchCveById(id string) model.Cve {
-	endpoint := constructUrl(map[string]string{"cveId": id})
-	fmt.Println(endpoint)
-
-	resp, err := http.Get(endpoint)
-	if err != nil {
-		fmt.Println("Error when sending request")
-		log.Fatal(err)
+func FetchCves(param map[string]string) []model.Cve {
+	if param == nil {
+		return fetchAll()
 	}
+
+	var cves []model.Cve = []model.Cve{}
+	endpoint := constructUrl(param)
+	resp := sendQuery(endpoint, nvdKey())
 	defer resp.Body.Close()
 
 	data, err := io.ReadAll(resp.Body)
@@ -182,12 +175,6 @@ func FetchCveById(id string) model.Cve {
 		log.Fatal(err)
 	}
 
-	return bodyJson.UnpackCve()[0]
+	cves = bodyJson.UnpackCve()
+	return cves
 }
-
-// func FetchCve(param map[string]string) []model.Cve {
-// 	if param == nil {
-// 		return FetchAll()
-// 	}
-// 	return nil
-// }

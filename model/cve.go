@@ -1,10 +1,7 @@
 package model
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"log"
 	"os"
 )
 
@@ -165,23 +162,6 @@ func (c Cve) GenerateDirectoryName() string {
 	return fmt.Sprintf("%s%s", year, suffix)
 }
 
-func (c Cve) ApplyUpdate(change CveChange) {
-	filepath := c.GenerateFilename()
-	file, err := os.Open(filepath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-	data, err := io.ReadAll(file)
-	if err != nil {
-		log.Fatal(err)
-	}
-	var content Cve
-	err = json.Unmarshal(data, &content)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(content)
+func (change CveChange) GetId() string {
+	return change.CveId
 }

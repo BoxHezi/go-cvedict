@@ -1,4 +1,4 @@
-package cveServices
+package cve
 
 import (
 	"encoding/json"
@@ -47,7 +47,7 @@ func ApplyUpdate(cve model.Cve, change model.CveChange) model.Cve {
 	newCve.SourceIdentifier = change.SourceIdentifier
 	if change.EventName == "CVE Received" {
 		newCve.Status = "Awaiting Analysis"
-	} else if change.EventName == "Initial Analysis" {
+	} else if change.EventName == "Initial Analysis" || change.EventName == "Reanalysis" {
 		newCve.Status = "Analyzed"
 	}
 
@@ -64,7 +64,6 @@ func ApplyUpdate(cve model.Cve, change model.CveChange) model.Cve {
 		}
 	}
 
-	// fmt.Println(newCve.CveSummary())
 	return *newCve
 }
 

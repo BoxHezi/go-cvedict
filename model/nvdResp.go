@@ -15,6 +15,7 @@ type nvdCve struct {
 	Cve Cve `json:"cve"`
 }
 
+// https://services.nvd.nist.gov/rest/json/cvehistory/2.0
 type NvdCvesHistoryResp struct {
 	ResultsPerPage int            `json:"resultsPerPage"`
 	StartIndex     int            `json:"startIndex"`

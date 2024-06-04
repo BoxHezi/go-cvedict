@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 
 	model "cve-dict/model"
+
+	cveServices "cve-dict/services/cve"
 	db "cve-dict/services/database"
 	git "cve-dict/services/git"
 	nvd "cve-dict/services/nvd"
@@ -32,7 +35,6 @@ func readJson(path string) []byte {
 // paths: a slice of strings representing file paths to JSON files containing CVE data.
 // map[string][]model.Cve: a map where the keys are years and the values are slices of model.Cve structs.
 func json2Cve(paths []string) []model.Cve {
-	// var cveGroup map[string][]model.Cve = make(map[string][]model.Cve)
 	var cves []model.Cve = []model.Cve{}
 
 	// read JSON files => unmarshal into `cve` => store in `cves`
@@ -51,10 +53,54 @@ func json2Cve(paths []string) []model.Cve {
 }
 
 func main() {
+	localCve := cveServices.GetCveById("CVE-2024-4978")
+	fmt.Println(localCve.CveSummary())
+
+	// fetch cvehistory
+	// TODO: change CVE histroy logic:
+	// 1. check cve history
+	// 2. get cveId from repo
+	// 3. query cve by id
+	history := true
+	if history {
+		url := "https://services.nvd.nist.gov/rest/json/cvehistory/2.0?cveId=CVE-2024-4978"
+		resp, err := http.Get(url)
+		if err != nil {
+			fmt.Println("Error when sending request")
+			log.Fatal(err)
+		}
+		defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println("Error when reading response body")
+			log.Fatal(err)
+		}
+
+		var respJson model.NvdCvesHistoryResp
+		if err := json.Unmarshal(body, &respJson); err != nil {
+			fmt.Printf("Error when parsing response body: %s\n", err)
+			if e, ok := err.(*json.SyntaxError); ok {
+				fmt.Printf("Syntax error at byte offset %d\n", e.Offset)
+			}
+			return
+		}
+
+		for _, c := range respJson.CveChanges {
+			localCve = cveServices.ApplyUpdate(localCve, c.Change)
+		}
+		fmt.Println(localCve.CveSummary())
+		cveServices.WriteToFile(localCve, "./change.json")
+
+		return
+	}
+
 	// add fetch data from NVD API directly
-	testNvd := true
+	testNvd := false
 	if testNvd {
-		nvd.FetchAll()
+		cves := nvd.FetchCves(nil)
+		for _, cve := range cves {
+			cveServices.WriteToFile(cve, "")
+		}
 		return
 	}
 
