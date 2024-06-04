@@ -13,17 +13,16 @@ import (
 )
 
 const (
-	nvdUrl      string = "https://services.nvd.nist.gov/rest/json/cves/2.0"
-	incremental int    = 2000
+	nvdUrl        string = "https://services.nvd.nist.gov/rest/json/cves/2.0"
+	nvdHistoryUrl string = "https://services.nvd.nist.gov/rest/json/cvehistory/2.0"
+	incremental   int    = 2000
 )
 
 func currentHourMinuteSecond() string {
 	return fmt.Sprintf("%02d:%02d:%02d", time.Now().Hour(), time.Now().Minute(), time.Now().Second())
 }
 
-func constructUrl(param map[string]string) string {
-	var endpoint string = nvdUrl
-
+func constructUrl(baseUrl string, param map[string]string) string {
 	var p string // parameters string
 	var c int    // counter
 	for k, v := range param {
@@ -33,7 +32,7 @@ func constructUrl(param map[string]string) string {
 		p += fmt.Sprintf("%s=%s", k, v)
 		c++
 	}
-	return fmt.Sprintf("%s?%s", endpoint, p)
+	return fmt.Sprintf("%s?%s", baseUrl, p)
 }
 
 func nvdKey() string {
@@ -103,7 +102,7 @@ func fetchAll() []model.Cve {
 	fmt.Println(currentHourMinuteSecond(), "-", "Start Fetching CVEs from NVD...")
 	// start := time.Now()
 	for {
-		endpoint := constructUrl(map[string]string{"startIndex": fmt.Sprintf("%d", index)})
+		endpoint := constructUrl(nvdUrl, map[string]string{"startIndex": fmt.Sprintf("%d", index)})
 		t1 := time.Now()
 		// Send Request
 		resp := sendQuery(endpoint, key)
@@ -156,7 +155,7 @@ func FetchCves(param map[string]string) []model.Cve {
 	}
 
 	var cves []model.Cve = []model.Cve{}
-	endpoint := constructUrl(param)
+	endpoint := constructUrl(nvdUrl, param)
 	resp := sendQuery(endpoint, nvdKey())
 	defer resp.Body.Close()
 
@@ -177,4 +176,32 @@ func FetchCves(param map[string]string) []model.Cve {
 
 	cves = bodyJson.UnpackCve()
 	return cves
+}
+
+func FetchCvesHistory(param map[string]string) []model.CveChange {
+	var cveChanges []model.CveChange
+	endpoint := constructUrl(nvdHistoryUrl, param)
+
+	resp := sendQuery(endpoint, nvdKey())
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error when reading response body")
+		log.Fatal(err)
+	}
+
+	var bodyJson model.NvdCvesHistoryResp
+	if err := json.Unmarshal(data, &bodyJson); err != nil {
+		fmt.Printf("Error when parsing response body: %s\n", err)
+		if e, ok := err.(*json.SyntaxError); ok {
+			fmt.Printf("Syntax error at byte offset %d\n", e.Offset)
+		}
+		log.Fatal(err)
+	}
+
+	for _, c := range bodyJson.CveChanges {
+		cveChanges = append(cveChanges, c.Change)
+	}
+	return cveChanges
 }

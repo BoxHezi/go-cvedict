@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"os"
+	"time"
 
 	model "cve-dict/model"
 
@@ -62,34 +62,22 @@ func main() {
 	// 2. get cveId from repo
 	// 3. query cve by id
 	history := true
+	var ids []string
 	if history {
-		url := "https://services.nvd.nist.gov/rest/json/cvehistory/2.0?cveId=CVE-2024-4978"
-		resp, err := http.Get(url)
-		if err != nil {
-			fmt.Println("Error when sending request")
-			log.Fatal(err)
-		}
-		defer resp.Body.Close()
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			fmt.Println("Error when reading response body")
-			log.Fatal(err)
+		cveChanges := nvd.FetchCvesHistory(map[string]string{"startIndex": "992186"})
+		time.Sleep(6 * time.Second)
+
+		for _, changes := range cveChanges {
+			ids = append(ids, changes.CveId)
 		}
 
-		var respJson model.NvdCvesHistoryResp
-		if err := json.Unmarshal(body, &respJson); err != nil {
-			fmt.Printf("Error when parsing response body: %s\n", err)
-			if e, ok := err.(*json.SyntaxError); ok {
-				fmt.Printf("Syntax error at byte offset %d\n", e.Offset)
-			}
-			return
-		}
+		// query changed CVE
+		for _, i := range ids {
+			tempCve := nvd.FetchCves(map[string]string{"cveId": i})[0]
+			cveServices.WriteToFile(tempCve, fmt.Sprintf("./%s.json", tempCve.Id))
 
-		for _, c := range respJson.CveChanges {
-			localCve = cveServices.ApplyUpdate(localCve, c.Change)
+			time.Sleep(6 * time.Second) // NVD requests 6 seconds between requests
 		}
-		fmt.Println(localCve.CveSummary())
-		cveServices.WriteToFile(localCve, "./change.json")
 
 		return
 	}
@@ -104,39 +92,42 @@ func main() {
 		return
 	}
 
-	cves := git.InitLocalRepo()
+	gitSource := false
+	if gitSource {
+		cves := git.InitLocalRepo()
 
-	modifiedCves := json2Cve(cves[git.Modified])
-	deletedCves := json2Cve(cves[git.Deleted])
-	addedCves := json2Cve(cves[git.Added])
+		modifiedCves := json2Cve(cves[git.Modified])
+		deletedCves := json2Cve(cves[git.Deleted])
+		addedCves := json2Cve(cves[git.Added])
 
-	fmt.Printf("New CVEs: %d\n", len(addedCves))
-	fmt.Printf("Modified CVEs: %d\n", len(modifiedCves))
-	fmt.Printf("Deleted CVEs: %d\n", len(deletedCves))
+		fmt.Printf("New CVEs: %d\n", len(addedCves))
+		fmt.Printf("Modified CVEs: %d\n", len(modifiedCves))
+		fmt.Printf("Deleted CVEs: %d\n", len(deletedCves))
 
-	client := db.Connect("")
-	defer db.Disconnect(*client)
+		client := db.Connect("")
+		defer db.Disconnect(*client)
 
-	// insert new CVEs
-	if len(addedCves) > 0 {
-		var bDocs []interface{}
-		for _, c := range addedCves {
-			bDocs = append(bDocs, c)
+		// insert new CVEs
+		if len(addedCves) > 0 {
+			var bDocs []interface{}
+			for _, c := range addedCves {
+				bDocs = append(bDocs, c)
+			}
+			db.InsertMany(*client, "dev1", "cve", bDocs)
 		}
-		db.InsertMany(*client, "dev1", "cve", bDocs)
-	}
 
-	// update modified CVEs
-	if len(modifiedCves) > 0 {
-		for _, c := range modifiedCves {
-			db.UpdateOne(*client, "dev1", "cve", c.Id, c)
+		// update modified CVEs
+		if len(modifiedCves) > 0 {
+			for _, c := range modifiedCves {
+				db.UpdateOne(*client, "dev1", "cve", c.Id, c)
+			}
 		}
-	}
 
-	// delete deleted CVEs
-	if len(deletedCves) > 0 {
-		for _, c := range deletedCves {
-			db.DeleteOne(*client, "dev1", "cve", c.Id)
+		// delete deleted CVEs
+		if len(deletedCves) > 0 {
+			for _, c := range deletedCves {
+				db.DeleteOne(*client, "dev1", "cve", c.Id)
+			}
 		}
 	}
 }
