@@ -38,35 +38,6 @@ func WriteToFile(cve model.Cve, filename string) {
 	}
 }
 
-func ApplyUpdate(cve model.Cve, change model.CveChange) model.Cve {
-	var newCve *model.Cve = new(model.Cve)
-
-	// change information
-	newCve = &cve
-	newCve.LastModified = change.Created
-	newCve.SourceIdentifier = change.SourceIdentifier
-	if change.EventName == "CVE Received" {
-		newCve.Status = "Awaiting Analysis"
-	} else if change.EventName == "Initial Analysis" || change.EventName == "Reanalysis" {
-		newCve.Status = "Analyzed"
-	}
-
-	// change details
-	// TODO: added, changed, removed
-	for _, d := range change.Details {
-		if d.Action == "Added" {
-			fmt.Println(d.NewValue)
-		} else if d.Action == "Changed" {
-			fmt.Println(d.OldValue)
-			fmt.Println(d.NewValue)
-		} else if d.Action == "Removed" {
-			fmt.Println(d.OldValue)
-		}
-	}
-
-	return *newCve
-}
-
 func GetCveById(id string) model.Cve {
 	var cve model.Cve = model.Cve{
 		Id: id,

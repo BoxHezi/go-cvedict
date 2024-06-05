@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"slices"
 	"time"
 
 	model "cve-dict/model"
@@ -53,45 +54,86 @@ func json2Cve(paths []string) []model.Cve {
 }
 
 func main() {
-	localCve := cveServices.GetCveById("CVE-2024-4978")
-	fmt.Println(localCve.CveSummary())
+	// TODO: implement update logic
+	update := true
+	if update {
+		// TODO: read nvdStatus json
+		nvdStatus := model.NvdStatus{}
+		nvdStatus.LoadNvdStatus("./nvdStatus.json")
+		cveCount := nvdStatus.CveCount
+		cveHistoryCount := nvdStatus.CveHistoryCount
 
-	// fetch cvehistory
-	// TODO: change CVE histroy logic:
-	// 1. check cve history
-	// 2. get cveId from repo
-	// 3. query cve by id
-	history := true
-	var ids []string
-	if history {
-		cveChanges := nvd.FetchCvesHistory(map[string]string{"startIndex": "992186"})
+		// TODO: fetch cves
+		newCves := nvd.FetchCves(map[string]string{"startIndex": fmt.Sprintf("%d", cveCount)})
+		fmt.Println(len(newCves))
+
+		// TODO: fetch cve history
 		time.Sleep(6 * time.Second)
+		historyCves := nvd.FetchCvesHistory(map[string]string{"startIndex": fmt.Sprintf("%d", cveHistoryCount)})
+		fmt.Println(len(historyCves))
 
-		for _, changes := range cveChanges {
-			ids = append(ids, changes.CveId)
+		// TODO: remove duplicate cve id and do incremental update
+		modifiedIds := []string{}
+		for _, history := range historyCves {
+			contains := false
+			for _, new := range newCves {
+				if new.Id == history.CveId {
+					contains = true
+					break
+				}
+			}
+			if !contains && !slices.Contains(modifiedIds, history.CveId) {
+				modifiedIds = append(modifiedIds, history.CveId)
+			}
 		}
 
-		// query changed CVE
-		for _, i := range ids {
-			tempCve := nvd.FetchCves(map[string]string{"cveId": i})[0]
-			cveServices.WriteToFile(tempCve, fmt.Sprintf("./%s.json", tempCve.Id))
-
-			time.Sleep(6 * time.Second) // NVD requests 6 seconds between requests
+		// TODO: fetch modified CVEs
+		// var updateCves []model.Cve = []model.Cve{}
+		for _, id := range modifiedIds {
+			// tempCve := nvd.FetchCves(map[string]string{"cveId": id})[0]
+			// // cveServices.WriteToFile(tempCve, fmt.Sprintf("./%s.json", tempCve.Id))
+			// updateCves = append(updateCves, tempCve)
+			// time.Sleep(6 * time.Second)
+			fmt.Println(id)
 		}
 
+		// TODO: insert to database
+		client := db.Connect("")
+		defer db.Disconnect(*client)
 		return
 	}
 
 	// add fetch data from NVD API directly
-	testNvd := false
-	if testNvd {
+	nvdSource := false
+	if nvdSource {
 		cves := nvd.FetchCves(nil)
 		for _, cve := range cves {
 			cveServices.WriteToFile(cve, "")
 		}
+
+		client := db.Connect("")
+		defer db.Disconnect(*client)
+
+		var bDocs []interface{}
+		for _, c := range cves {
+			bDocs = append(bDocs, c)
+		}
+		db.InsertMany(*client, "nvd", "cve", bDocs)
+
+		// init status for nvd query
+		var nvdStatus model.NvdStatus = nvd.InitNvdStatus()
+		fmt.Println(nvdStatus.CveCount)
+		fmt.Println(nvdStatus.CveHistoryCount)
+
+		file, _ := os.Create("nvdStatus.json")
+		defer file.Close()
+		data, _ := json.Marshal(nvdStatus)
+		file.Write(data)
+
 		return
 	}
 
+	// use git repo as CVEs source
 	gitSource := false
 	if gitSource {
 		cves := git.InitLocalRepo()

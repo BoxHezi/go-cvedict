@@ -49,8 +49,6 @@ func waitForNextRequest(start, end time.Time, key string) {
 	}
 
 	if duration < waitBase {
-		// waiting := (waitBase - duration).Seconds()
-		// fmt.Printf("Wait for %f seconds\n", waiting)
 		time.Sleep(waitBase - duration)
 	}
 }
@@ -76,6 +74,7 @@ func readRespBody(resp *http.Response) []byte {
 		fmt.Println("Error when reading response body")
 		log.Fatal(err)
 	}
+	defer resp.Body.Close()
 	return body
 }
 
@@ -100,7 +99,7 @@ func fetchAll() []model.Cve {
 	key := nvdKey()
 
 	fmt.Println(currentHourMinuteSecond(), "-", "Start Fetching CVEs from NVD...")
-	// start := time.Now()
+	start := time.Now()
 	for {
 		endpoint := constructUrl(nvdUrl, map[string]string{"startIndex": fmt.Sprintf("%d", index)})
 		t1 := time.Now()
@@ -114,7 +113,6 @@ func fetchAll() []model.Cve {
 		// Parse Response Body to CVE/JSONs
 		bodyJson, err := parseRespBody(body)
 		if err != nil {
-			fmt.Printf("Error when parsing response body: %s\n", err)
 			fmt.Println("Wait for 6 seconds and try again...")
 			time.Sleep(6 * time.Second)
 			continue
@@ -123,7 +121,7 @@ func fetchAll() []model.Cve {
 		cves = append(cves, bodyJson.UnpackCve()...) // store all vulns into a slice/arrays
 
 		totalResults = bodyJson.TotalResults
-		resp.Body.Close()
+		// resp.Body.Close()
 		index += incremental
 		if index >= totalResults {
 			break
@@ -132,19 +130,9 @@ func fetchAll() []model.Cve {
 		waitForNextRequest(t1, t2, key) // NVD request rate limit: 6 seconds per request if without API key; 1 second per request if with API key
 	}
 	fmt.Println(currentHourMinuteSecond(), "-", "Done Fetching CVEs from NVD...")
-	fmt.Printf("Total %d CVEs fetched\n", totalResults)
-	fmt.Printf("len(cves): %d\n", len(cves))
-	// fmt.Printf("Total %d CVEs fetched\n", count)
-
-	// end := time.Now()
-
-	// if key != "" {
-	// 	fmt.Printf("With API Key - ")
-	// } else {
-	// 	fmt.Printf("Without API Key - ")
-	// }
-	// totalDuration := end.Sub(start)
-	// fmt.Println("Total Duration: ", totalDuration)
+	end := time.Now()
+	totalDuration := end.Sub(start)
+	fmt.Printf("Fetched %d CVEs in %v\n", len(cves), totalDuration)
 
 	return cves
 }
@@ -159,14 +147,10 @@ func FetchCves(param map[string]string) []model.Cve {
 	resp := sendQuery(endpoint, nvdKey())
 	defer resp.Body.Close()
 
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Error when reading response body")
-		log.Fatal(err)
-	}
+	body := readRespBody(resp)
 
 	var bodyJson model.NvdCvesResp
-	if err := json.Unmarshal(data, &bodyJson); err != nil {
+	if err := json.Unmarshal(body, &bodyJson); err != nil {
 		fmt.Printf("Error when parsing response body: %s\n", err)
 		if e, ok := err.(*json.SyntaxError); ok {
 			fmt.Printf("Syntax error at byte offset %d\n", e.Offset)
@@ -185,14 +169,10 @@ func FetchCvesHistory(param map[string]string) []model.CveChange {
 	resp := sendQuery(endpoint, nvdKey())
 	defer resp.Body.Close()
 
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Error when reading response body")
-		log.Fatal(err)
-	}
+	body := readRespBody(resp)
 
 	var bodyJson model.NvdCvesHistoryResp
-	if err := json.Unmarshal(data, &bodyJson); err != nil {
+	if err := json.Unmarshal(body, &bodyJson); err != nil {
 		fmt.Printf("Error when parsing response body: %s\n", err)
 		if e, ok := err.(*json.SyntaxError); ok {
 			fmt.Printf("Syntax error at byte offset %d\n", e.Offset)
@@ -204,4 +184,61 @@ func FetchCvesHistory(param map[string]string) []model.CveChange {
 		cveChanges = append(cveChanges, c.Change)
 	}
 	return cveChanges
+}
+
+// initialize NvdStatus
+// 1. query cve endpoint to set up the number of CVEs
+// 2. query cve history endpoint to set up the number of CVE history
+// This should only be used after the first time query all data from nvd
+func InitNvdStatus() model.NvdStatus {
+	var status *model.NvdStatus = new(model.NvdStatus)
+
+	t1 := time.Now()
+
+	// query cve endpoint to set up the number of CVEs
+	status.SetCveCount(initNvdCveStatus())
+
+	t2 := time.Now()
+	waitForNextRequest(t1, t2, "")
+
+	// query cve history endpoint to set up the number of CVE history
+	status.SetCveHistoryCount(initNvdCveHistoryStatus())
+
+	return *status
+}
+
+func initNvdCveStatus() int {
+	endpoint := constructUrl(nvdUrl, map[string]string{"startIndex": "0", "resultsPerPage": "1"})
+	resp := sendQuery(endpoint, nvdKey())
+	defer resp.Body.Close()
+
+	body := readRespBody(resp)
+
+	var cveResp model.NvdCvesResp
+	if err := json.Unmarshal(body, &cveResp); err != nil {
+		fmt.Printf("Error when parsing response body: %s\n", err)
+		if e, ok := err.(*json.SyntaxError); ok {
+			fmt.Printf("Syntax error at byte offset %d\n", e.Offset)
+		}
+		log.Fatal(err)
+	}
+	return cveResp.TotalResults
+}
+
+func initNvdCveHistoryStatus() int {
+	endpoint := constructUrl(nvdHistoryUrl, map[string]string{"startIndex": "0", "resultsPerPage": "1"})
+	resp := sendQuery(endpoint, nvdKey())
+	defer resp.Body.Close()
+
+	body := readRespBody(resp)
+
+	var cveHistoryResp model.NvdCvesHistoryResp
+	if err := json.Unmarshal(body, &cveHistoryResp); err != nil {
+		fmt.Printf("Error when parsing response body: %s\n", err)
+		if e, ok := err.(*json.SyntaxError); ok {
+			fmt.Printf("Syntax error at byte offset %d\n", e.Offset)
+		}
+		log.Fatal(err)
+	}
+	return cveHistoryResp.TotalResults
 }
