@@ -60,20 +60,20 @@ func writeCvesToLocalJson(cves []model.Cve) {
 }
 
 func doUpdate() {
-	// TODO: read nvdStatus json
+	// read nvdStatus json
 	nvdStatus := model.NvdStatus{}
 	nvdStatus.LoadNvdStatus("./nvdStatus.json")
 
-	// TODO: fetch cves
+	// fetch cves
 	newCves := nvd.FetchCves(map[string]string{"startIndex": fmt.Sprintf("%d", nvdStatus.CveCount)})
 	fmt.Printf("%d new CVEs\n", len(newCves))
 
-	// TODO: fetch cve history
+	// fetch cve history
 	time.Sleep(6 * time.Second)
 	historyCves := nvd.FetchCvesHistory(map[string]string{"startIndex": fmt.Sprintf("%d", nvdStatus.CveHistoryCount)})
 	fmt.Printf("%d CVE history\n", len(historyCves))
 
-	// TODO: remove duplicate cve id and do incremental update
+	// remove duplicate cve id and get ID for modified CVEs
 	modifiedIds := []string{}
 	for _, history := range historyCves {
 		contains := false
@@ -88,7 +88,7 @@ func doUpdate() {
 		}
 	}
 
-	// TODO: fetch modified CVEs
+	// fetch modified CVEs
 	var updateCves []model.Cve = []model.Cve{}
 	for _, id := range modifiedIds {
 		tempCve := nvd.FetchCves(map[string]string{"cveId": id})[0]
@@ -96,7 +96,7 @@ func doUpdate() {
 		time.Sleep(6 * time.Second)
 	}
 
-	// TODO: insert to database
+	// insert to database
 	client := db.Connect("")
 	defer db.Disconnect(*client)
 
@@ -112,11 +112,11 @@ func doUpdate() {
 		db.UpdateOne(*client, "nvd", "cve", c.Id, c)
 	}
 
-	// TODO: write to file
+	// write to file
 	writeCvesToLocalJson(newCves)
 	writeCvesToLocalJson(updateCves)
 
-	// TODO: update nvdStatus
+	// update nvdStatus
 	nvdStatus.SetCveCount(nvdStatus.CveCount + len(newCves))
 	nvdStatus.SetCveHistoryCount(nvdStatus.CveHistoryCount + len(historyCves))
 	nvdStatus.SaveNvdStatus("./nvdStatus.json")
@@ -137,13 +137,7 @@ func fetchFromNvd() {
 
 	// init status for nvd query
 	var nvdStatus model.NvdStatus = nvd.InitNvdStatus()
-	fmt.Println(nvdStatus.CveCount)
-	fmt.Println(nvdStatus.CveHistoryCount)
-
-	file, _ := os.Create("nvdStatus.json")
-	defer file.Close()
-	data, _ := json.Marshal(nvdStatus)
-	file.Write(data)
+	nvdStatus.SaveNvdStatus("./nvdStatus.json")
 }
 
 func fetchFromGit() {
