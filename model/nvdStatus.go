@@ -45,3 +45,18 @@ func (n *NvdStatus) LoadNvdStatus(filename string) {
 	n.SetCveCount(nvdStatus.CveCount)
 	n.SetCveHistoryCount(nvdStatus.CveHistoryCount)
 }
+
+func (n NvdStatus) SaveNvdStatus(filename string) {
+	file, err := os.Create(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	data, err := json.Marshal(n)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	file.Write(data)
+}

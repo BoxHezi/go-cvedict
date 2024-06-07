@@ -88,18 +88,44 @@ func main() {
 		}
 
 		// TODO: fetch modified CVEs
-		// var updateCves []model.Cve = []model.Cve{}
+		var updateCves []model.Cve = []model.Cve{}
 		for _, id := range modifiedIds {
-			// tempCve := nvd.FetchCves(map[string]string{"cveId": id})[0]
-			// // cveServices.WriteToFile(tempCve, fmt.Sprintf("./%s.json", tempCve.Id))
-			// updateCves = append(updateCves, tempCve)
-			// time.Sleep(6 * time.Second)
-			fmt.Println(id)
+			tempCve := nvd.FetchCves(map[string]string{"cveId": id})[0]
+			updateCves = append(updateCves, tempCve)
+			time.Sleep(6 * time.Second)
 		}
 
 		// TODO: insert to database
 		client := db.Connect("")
 		defer db.Disconnect(*client)
+
+		if len(newCves) > 0 {
+			var bDocs []interface{}
+			for _, c := range newCves {
+				bDocs = append(bDocs, c)
+			}
+			db.InsertMany(*client, "nvd", "cve", bDocs)
+		}
+
+		for _, c := range updateCves {
+			db.UpdateOne(*client, "nvd", "cve", c.Id, c)
+		}
+
+		// TODO: write to file
+		for _, c := range newCves {
+			cveServices.WriteToFile(c, "")
+		}
+
+		for _, c := range updateCves {
+			cveServices.WriteToFile(c, "")
+		}
+
+		// TODO: update nvdStatus
+		nvdStatus.SetCveCount(cveCount + len(newCves))
+		nvdStatus.SetCveHistoryCount(cveHistoryCount + len(historyCves))
+		nvdStatus.SaveNvdStatus("./nvdStatus.json")
+		fmt.Println(nvdStatus.CveCount)
+		fmt.Println(nvdStatus.CveHistoryCount)
 		return
 	}
 

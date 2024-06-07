@@ -143,22 +143,28 @@ func FetchCves(param map[string]string) []model.Cve {
 	}
 
 	var cves []model.Cve = []model.Cve{}
-	endpoint := constructUrl(nvdUrl, param)
-	resp := sendQuery(endpoint, nvdKey())
-	defer resp.Body.Close()
+	for { // add loop to retry if error occurs
+		endpoint := constructUrl(nvdUrl, param)
+		resp := sendQuery(endpoint, nvdKey())
+		defer resp.Body.Close()
 
-	body := readRespBody(resp)
+		body := readRespBody(resp)
 
-	var bodyJson model.NvdCvesResp
-	if err := json.Unmarshal(body, &bodyJson); err != nil {
-		fmt.Printf("Error when parsing response body: %s\n", err)
-		if e, ok := err.(*json.SyntaxError); ok {
-			fmt.Printf("Syntax error at byte offset %d\n", e.Offset)
+		var bodyJson model.NvdCvesResp
+		if err := json.Unmarshal(body, &bodyJson); err != nil {
+			fmt.Printf("Error when parsing response body: %s\n", err)
+			if e, ok := err.(*json.SyntaxError); ok {
+				fmt.Printf("Syntax error at byte offset %d\n", e.Offset)
+			}
+			// log.Fatal(err)
+			time.Sleep(6 * time.Second)
+			continue
 		}
-		log.Fatal(err)
+
+		cves = bodyJson.UnpackCve()
+		break
 	}
 
-	cves = bodyJson.UnpackCve()
 	return cves
 }
 
