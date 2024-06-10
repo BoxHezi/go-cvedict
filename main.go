@@ -9,6 +9,8 @@ import (
 	"slices"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	model "cve-dict/model"
 
 	cveServices "cve-dict/services/cve"
@@ -16,6 +18,44 @@ import (
 	git "cve-dict/services/git"
 	nvd "cve-dict/services/nvd"
 )
+
+// ! Test and Learn Cobra
+// TODO: move to other package
+var (
+	rootCommand   *cobra.Command
+	updateCommand *cobra.Command
+	nvdCommand    *cobra.Command
+)
+
+func init() {
+	rootCommand = &cobra.Command{
+		Use:   "cve-dict",
+		Short: "CVE dict",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("CVE dict")
+		},
+	}
+
+	updateCommand = &cobra.Command{
+		Use:   "update",
+		Short: "Update CVE dict",
+		Run: func(cmd *cobra.Command, args []string) {
+			// doUpdate()
+			fmt.Println("Update")
+		},
+	}
+
+	nvdCommand = &cobra.Command{
+		Use:   "nvd",
+		Short: "CVE dict",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("CVE dict")
+		},
+	}
+
+	rootCommand.AddCommand(updateCommand)
+	rootCommand.AddCommand(nvdCommand)
+}
 
 func readJson(path string) []byte {
 	file, err := os.Open(path)
@@ -179,6 +219,8 @@ func fetchFromGit() {
 }
 
 func main() {
+	rootCommand.Execute()
+
 	// implement update logic
 	update := false
 	if update {
