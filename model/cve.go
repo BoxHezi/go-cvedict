@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	YEAR_START_INX = 4
+	YEAR_START_IDX = 4
 	YEAR_END_IDX   = 8
 )
 
@@ -123,7 +123,7 @@ type reference struct {
 // Cve Change
 type CveChange struct {
 	CveId            string   `json:"cveId"`
-	EventName        string   `json:"eventName"` // TODO: CVE Received, CVE Modified, Initial Analysis
+	EventName        string   `json:"eventName"` //? CVE Received, CVE Modified, Initial Analysis
 	CveChangeId      string   `json:"cveChangeId"`
 	SourceIdentifier string   `json:"sourceIdentifier"`
 	Created          string   `json:"created"`
@@ -131,7 +131,7 @@ type CveChange struct {
 }
 
 type detail struct {
-	Action   string `json:"action"` // TODO: Added, Removed, Changed
+	Action   string `json:"action"` //? TODO: Added, Removed, Changed
 	Type     string `json:"type"`
 	OldValue string `json:"oldValue,omitempty"`
 	NewValue string `json:"newValue,omitempty"`
@@ -148,7 +148,7 @@ func (c Cve) CveSummary() string {
 }
 
 func (c Cve) GetYear() string {
-	return c.Id[YEAR_START_INX:YEAR_END_IDX]
+	return c.Id[YEAR_START_IDX:YEAR_END_IDX]
 }
 
 func (c Cve) GenerateFilename() string {
@@ -162,6 +162,6 @@ func (c Cve) GenerateDirectoryName() string {
 	return fmt.Sprintf("%s%s", year, suffix)
 }
 
-func (change CveChange) GetId() string {
-	return change.CveId
-}
+// func (change CveChange) GetCveId() string {
+// 	return change.CveId
+// }

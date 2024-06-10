@@ -51,7 +51,6 @@ func InsertMany(client mongo.Client, database, collection string, documents []in
 		fmt.Println("ERROR DURING InsertMany")
 		log.Fatal(err)
 	}
-	// fmt.Println(result.InsertedIDs...)
 	fmt.Printf("[INFO] Database: %s, Insert %d documents to Collection: %s\n", database, len(result.InsertedIDs), collection)
 }
 
@@ -67,9 +66,6 @@ func UpdateOne(client mongo.Client, database, collection, cveId string, document
 		log.Fatal(err)
 	}
 	fmt.Printf("[INFO] Database: %s, Update %s successfully\n", database, cveId)
-
-	// fmt.Printf("Update MatchedCount: %d, Update ModifiedCount: %d\n", result.MatchedCount, result.ModifiedCount)
-	// fmt.Printf("UpsertedCount: %d, UpsertedID: %v\n", result.UpsertedCount, result.UpsertedID)
 }
 
 func DeleteOne(client mongo.Client, database, collection, cveId string) {

@@ -59,7 +59,7 @@ func sendQuery(url string, key string) *http.Response {
 	if key != "" {
 		req.Header.Set("apiKey", nvdKey())
 	}
-	fmt.Println(currentHourMinuteSecond(), url)
+	fmt.Println("[INFO]", currentHourMinuteSecond(), url)
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error when sending request")

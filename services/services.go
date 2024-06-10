@@ -58,6 +58,7 @@ func writeCvesToLocalJson(cves []model.Cve) {
 		cveServices.WriteToFile(c, "")
 	}
 }
+
 func FetchFromGit() {
 	cves := git.InitLocalRepo()
 
@@ -72,7 +73,6 @@ func FetchFromGit() {
 	client := db.Connect("")
 	defer db.Disconnect(*client)
 
-	// insert new CVEs
 	if len(addedCves) > 0 {
 		var bDocs []interface{}
 		for _, c := range addedCves {
@@ -81,18 +81,12 @@ func FetchFromGit() {
 		db.InsertMany(*client, "dev1", "cve", bDocs)
 	}
 
-	// update modified CVEs
-	if len(modifiedCves) > 0 {
-		for _, c := range modifiedCves {
-			db.UpdateOne(*client, "dev1", "cve", c.Id, c)
-		}
+	for _, c := range modifiedCves {
+		db.UpdateOne(*client, "dev1", "cve", c.Id, c)
 	}
 
-	// delete deleted CVEs
-	if len(deletedCves) > 0 {
-		for _, c := range deletedCves {
-			db.DeleteOne(*client, "dev1", "cve", c.Id)
-		}
+	for _, c := range deletedCves {
+		db.DeleteOne(*client, "dev1", "cve", c.Id)
 	}
 }
 
@@ -120,8 +114,8 @@ func DoUpdate() {
 	nvdStatus.LoadNvdStatus("./nvdStatus.json")
 
 	// fetch cves
-	newCves := nvd.FetchCves(map[string]string{"startIndex": fmt.Sprintf("%d", nvdStatus.CveCount)})
-	fmt.Printf("%d new CVEs\n", len(newCves))
+	addedCves := nvd.FetchCves(map[string]string{"startIndex": fmt.Sprintf("%d", nvdStatus.CveCount)})
+	fmt.Printf("%d new CVEs\n", len(addedCves))
 
 	// fetch cve history
 	time.Sleep(6 * time.Second)
@@ -132,7 +126,7 @@ func DoUpdate() {
 	modifiedIds := []string{}
 	for _, history := range historyCves {
 		contains := false
-		for _, new := range newCves {
+		for _, new := range addedCves {
 			if new.Id == history.CveId {
 				contains = true
 				break
@@ -144,10 +138,10 @@ func DoUpdate() {
 	}
 
 	// fetch modified CVEs
-	var updateCves []model.Cve = []model.Cve{}
+	var modifiedCves []model.Cve = []model.Cve{}
 	for _, id := range modifiedIds {
 		tempCve := nvd.FetchCves(map[string]string{"cveId": id})[0]
-		updateCves = append(updateCves, tempCve)
+		modifiedCves = append(modifiedCves, tempCve)
 		time.Sleep(6 * time.Second)
 	}
 
@@ -155,24 +149,24 @@ func DoUpdate() {
 	client := db.Connect("")
 	defer db.Disconnect(*client)
 
-	if len(newCves) > 0 {
+	if len(addedCves) > 0 {
 		var bDocs []interface{}
-		for _, c := range newCves {
+		for _, c := range addedCves {
 			bDocs = append(bDocs, c)
 		}
 		db.InsertMany(*client, "nvd", "cve", bDocs)
 	}
 
-	for _, c := range updateCves {
+	for _, c := range modifiedCves {
 		db.UpdateOne(*client, "nvd", "cve", c.Id, c)
 	}
 
 	// write to file
-	writeCvesToLocalJson(newCves)
-	writeCvesToLocalJson(updateCves)
+	writeCvesToLocalJson(addedCves)
+	writeCvesToLocalJson(modifiedCves)
 
 	// update nvdStatus
-	nvdStatus.SetCveCount(nvdStatus.CveCount + len(newCves))
+	nvdStatus.SetCveCount(nvdStatus.CveCount + len(addedCves))
 	nvdStatus.SetCveHistoryCount(nvdStatus.CveHistoryCount + len(historyCves))
 	nvdStatus.SaveNvdStatus("./nvdStatus.json")
 }

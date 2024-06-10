@@ -29,7 +29,6 @@ func initUpdateCmd() *cobra.Command {
 		Use:   "update",
 		Short: "Update CVE dict",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("Update")
 			services.DoUpdate()
 		},
 	}
@@ -47,14 +46,12 @@ func initFetchCmd() *cobra.Command {
 				fmt.Printf("Unknown	source: %s\n", args[0])
 				fmt.Printf("Valid source options: %s\n", sourceOptions)
 			} else if args[0] == "nvd" {
-				fmt.Println("Start fetching from NVD...")
 				services.FetchFromNvd()
 			} else if args[0] == "git" {
-				fmt.Println("Start fetching from Git...")
 				services.FetchFromGit()
 			}
 		},
-		Args: cobra.ExactArgs(1),
+		Args: cobra.ExactArgs(1), // either nvd or git
 	}
 
 	return fetchCmd
