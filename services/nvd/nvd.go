@@ -78,6 +78,14 @@ func readRespBody(resp *http.Response) []byte {
 	return body
 }
 
+// parseRespBody parses the given JSON byte slice into the provided result pointer.
+//
+// Parameters:
+// - body: a byte slice containing the JSON data to be parsed.
+// - result: a pointer to the struct that will hold the parsed data.
+//
+// Returns:
+// - error: an error if the JSON parsing fails.
 func parseRespBody[T model.NvdCvesResp | model.NvdCvesHistoryResp](body []byte, result *T) error {
 	if err := json.Unmarshal(body, &result); err != nil {
 		fmt.Printf("Error when parsing response body: %s\n", err)
@@ -96,16 +104,12 @@ func fetchAll() []model.Cve {
 	var cves []model.Cve = []model.Cve{}
 
 	key := nvdKey()
-
 	fmt.Println(currentHourMinuteSecond(), "-", "Start Fetching CVEs from NVD...")
 	start := time.Now()
 	for {
-		endpoint := constructUrl(nvdUrl, map[string]string{"startIndex": fmt.Sprintf("%d", index)})
+		url := constructUrl(nvdUrl, map[string]string{"startIndex": fmt.Sprintf("%d", index)})
 		t1 := time.Now()
-		// Send Request
-		resp := sendQuery(endpoint, key)
-
-		// Read Response Body
+		resp := sendQuery(url, key)
 		body := readRespBody(resp)
 		t2 := time.Now()
 
@@ -121,7 +125,6 @@ func fetchAll() []model.Cve {
 		cves = append(cves, bodyJson.UnpackCve()...) // store all vulns into a slice/arrays
 
 		totalResults = bodyJson.TotalResults
-		// resp.Body.Close()
 		index += incremental
 		if index >= totalResults {
 			break
@@ -144,10 +147,8 @@ func FetchCves(param map[string]string) []model.Cve {
 
 	var cves []model.Cve = []model.Cve{}
 	for { // add loop to retry if error occurs
-		endpoint := constructUrl(nvdUrl, param)
-		resp := sendQuery(endpoint, nvdKey())
-		defer resp.Body.Close()
-
+		url := constructUrl(nvdUrl, param)
+		resp := sendQuery(url, nvdKey())
 		body := readRespBody(resp)
 
 		var bodyJson *model.NvdCvesResp = new(model.NvdCvesResp)
@@ -167,11 +168,8 @@ func FetchCves(param map[string]string) []model.Cve {
 
 func FetchCvesHistory(param map[string]string) []model.CveChange {
 	var cveChanges []model.CveChange
-	endpoint := constructUrl(nvdHistoryUrl, param)
-
-	resp := sendQuery(endpoint, nvdKey())
-	defer resp.Body.Close()
-
+	url := constructUrl(nvdHistoryUrl, param)
+	resp := sendQuery(url, nvdKey())
 	body := readRespBody(resp)
 
 	var bodyJson *model.NvdCvesHistoryResp = new(model.NvdCvesHistoryResp)
@@ -194,10 +192,7 @@ func InitNvdStatus() model.NvdStatus {
 	var status *model.NvdStatus = new(model.NvdStatus)
 
 	t1 := time.Now()
-
-	// query cve endpoint to set up the number of CVEs
-	status.SetCveCount(initNvdCveStatus())
-
+	status.SetCveCount(initNvdCveStatus()) // query cve endpoint to set up the number of CVEs
 	t2 := time.Now()
 	waitForNextRequest(t1, t2, "")
 
@@ -208,10 +203,8 @@ func InitNvdStatus() model.NvdStatus {
 }
 
 func initNvdCveStatus() int {
-	endpoint := constructUrl(nvdUrl, map[string]string{"startIndex": "0", "resultsPerPage": "1"})
-	resp := sendQuery(endpoint, nvdKey())
-	defer resp.Body.Close()
-
+	url := constructUrl(nvdUrl, map[string]string{"startIndex": "0", "resultsPerPage": "1"})
+	resp := sendQuery(url, nvdKey())
 	body := readRespBody(resp)
 
 	var bodyJson *model.NvdCvesResp = new(model.NvdCvesResp)
@@ -223,10 +216,8 @@ func initNvdCveStatus() int {
 }
 
 func initNvdCveHistoryStatus() int {
-	endpoint := constructUrl(nvdHistoryUrl, map[string]string{"startIndex": "0", "resultsPerPage": "1"})
-	resp := sendQuery(endpoint, nvdKey())
-	defer resp.Body.Close()
-
+	url := constructUrl(nvdHistoryUrl, map[string]string{"startIndex": "0", "resultsPerPage": "1"})
+	resp := sendQuery(url, nvdKey())
 	body := readRespBody(resp)
 
 	var bodyJson *model.NvdCvesHistoryResp = new(model.NvdCvesHistoryResp)
