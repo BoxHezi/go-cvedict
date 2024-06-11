@@ -9,6 +9,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	model "cve-dict/model"
 )
 
 func Connect(uri string) *mongo.Client {
@@ -28,39 +30,42 @@ func Connect(uri string) *mongo.Client {
 	return client
 }
 
-func InsertOne(client mongo.Client, database, collection string, document interface{}) {
+func InsertOne(client mongo.Client, database, collection string, cve model.Cve) {
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
 	col := client.Database(database).Collection(collection)
-	result, err := col.InsertOne(ctx, document)
+	result, err := col.InsertOne(ctx, cve)
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("Inserted document with ID:", result.InsertedID)
 }
 
-func InsertMany(client mongo.Client, database, collection string, documents []interface{}) {
+func InsertMany(client mongo.Client, database, collection string, cves []model.Cve) {
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
-	col := client.Database(database).Collection(collection)
+	var bDocs []interface{} // convert []model.Cve to []interface{}
+	for _, c := range cves {
+		bDocs = append(bDocs, c)
+	}
 
-	result, err := col.InsertMany(ctx, documents)
+	col := client.Database(database).Collection(collection)
+	result, err := col.InsertMany(ctx, bDocs)
 	if err != nil {
-		fmt.Println("ERROR DURING InsertMany")
 		log.Fatal(err)
 	}
 	fmt.Printf("[INFO] Database: %s, Insert %d documents to Collection: %s\n", database, len(result.InsertedIDs), collection)
 }
 
-func UpdateOne(client mongo.Client, database, collection, cveId string, document interface{}) {
+func UpdateOne(client mongo.Client, database, collection, cveId string, cve model.Cve) {
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
 	col := client.Database(database).Collection(collection)
 	filter := bson.D{{Key: "id", Value: cveId}}
-	update := bson.D{{Key: "$set", Value: document}}
+	update := bson.D{{Key: "$set", Value: cve}}
 	_, err := col.UpdateOne(ctx, filter, update)
 	if err != nil {
 		log.Fatal(err)

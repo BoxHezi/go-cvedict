@@ -74,11 +74,7 @@ func FetchFromGit() {
 	defer db.Disconnect(*client)
 
 	if len(addedCves) > 0 {
-		var bDocs []interface{}
-		for _, c := range addedCves {
-			bDocs = append(bDocs, c)
-		}
-		db.InsertMany(*client, "dev1", "cve", bDocs)
+		db.InsertMany(*client, "dev1", "cve", addedCves)
 	}
 
 	for _, c := range modifiedCves {
@@ -97,11 +93,7 @@ func FetchFromNvd() {
 	client := db.Connect("")
 	defer db.Disconnect(*client)
 
-	var bDocs []interface{}
-	for _, c := range cves {
-		bDocs = append(bDocs, c)
-	}
-	db.InsertMany(*client, "nvd", "cve", bDocs)
+	db.InsertMany(*client, "nvd", "cve", cves)
 
 	// init status for nvd query
 	var nvdStatus model.NvdStatus = nvd.InitNvdStatus()
@@ -150,11 +142,7 @@ func DoUpdate() {
 	defer db.Disconnect(*client)
 
 	if len(addedCves) > 0 {
-		var bDocs []interface{}
-		for _, c := range addedCves {
-			bDocs = append(bDocs, c)
-		}
-		db.InsertMany(*client, "nvd", "cve", bDocs)
+		db.InsertMany(*client, "nvd", "cve", addedCves)
 	}
 
 	for _, c := range modifiedCves {
