@@ -78,17 +78,16 @@ func readRespBody(resp *http.Response) []byte {
 	return body
 }
 
-func parseRespBody(body []byte) (model.NvdCvesResp, error) {
-	var bodyJson model.NvdCvesResp
-	if err := json.Unmarshal(body, &bodyJson); err != nil {
+func parseRespBody[T model.NvdCvesResp | model.NvdCvesHistoryResp](body []byte, result *T) error {
+	if err := json.Unmarshal(body, &result); err != nil {
 		fmt.Printf("Error when parsing response body: %s\n", err)
 		if e, ok := err.(*json.SyntaxError); ok {
 			fmt.Printf("Syntax error at byte offset %d\n", e.Offset)
 		}
-		return model.NvdCvesResp{}, err
+		return err
 	}
 
-	return bodyJson, nil
+	return nil
 }
 
 func fetchAll() []model.Cve {
@@ -111,7 +110,8 @@ func fetchAll() []model.Cve {
 		t2 := time.Now()
 
 		// Parse Response Body to CVE/JSONs
-		bodyJson, err := parseRespBody(body)
+		var bodyJson *model.NvdCvesResp = new(model.NvdCvesResp)
+		err := parseRespBody(body, bodyJson)
 		if err != nil {
 			fmt.Println("Wait for 6 seconds and try again...")
 			time.Sleep(6 * time.Second)
@@ -150,13 +150,10 @@ func FetchCves(param map[string]string) []model.Cve {
 
 		body := readRespBody(resp)
 
-		var bodyJson model.NvdCvesResp
-		if err := json.Unmarshal(body, &bodyJson); err != nil {
-			fmt.Printf("Error when parsing response body: %s\n", err)
-			if e, ok := err.(*json.SyntaxError); ok {
-				fmt.Printf("Syntax error at byte offset %d\n", e.Offset)
-			}
-			// log.Fatal(err)
+		var bodyJson *model.NvdCvesResp = new(model.NvdCvesResp)
+		err := parseRespBody(body, bodyJson)
+		if err != nil {
+			fmt.Println("Wait for 6 seconds and try again...")
 			time.Sleep(6 * time.Second)
 			continue
 		}
@@ -177,13 +174,10 @@ func FetchCvesHistory(param map[string]string) []model.CveChange {
 
 	body := readRespBody(resp)
 
-	var bodyJson model.NvdCvesHistoryResp
-	if err := json.Unmarshal(body, &bodyJson); err != nil {
+	var bodyJson *model.NvdCvesHistoryResp = new(model.NvdCvesHistoryResp)
+	err := parseRespBody(body, bodyJson)
+	if err != nil {
 		fmt.Printf("Error when parsing response body: %s\n", err)
-		if e, ok := err.(*json.SyntaxError); ok {
-			fmt.Printf("Syntax error at byte offset %d\n", e.Offset)
-		}
-		log.Fatal(err)
 	}
 
 	for _, c := range bodyJson.CveChanges {
@@ -220,15 +214,12 @@ func initNvdCveStatus() int {
 
 	body := readRespBody(resp)
 
-	var cveResp model.NvdCvesResp
-	if err := json.Unmarshal(body, &cveResp); err != nil {
+	var bodyJson *model.NvdCvesResp = new(model.NvdCvesResp)
+	err := parseRespBody(body, bodyJson)
+	if err != nil {
 		fmt.Printf("Error when parsing response body: %s\n", err)
-		if e, ok := err.(*json.SyntaxError); ok {
-			fmt.Printf("Syntax error at byte offset %d\n", e.Offset)
-		}
-		log.Fatal(err)
 	}
-	return cveResp.TotalResults
+	return bodyJson.TotalResults
 }
 
 func initNvdCveHistoryStatus() int {
@@ -238,13 +229,10 @@ func initNvdCveHistoryStatus() int {
 
 	body := readRespBody(resp)
 
-	var cveHistoryResp model.NvdCvesHistoryResp
-	if err := json.Unmarshal(body, &cveHistoryResp); err != nil {
+	var bodyJson *model.NvdCvesHistoryResp = new(model.NvdCvesHistoryResp)
+	err := parseRespBody(body, bodyJson)
+	if err != nil {
 		fmt.Printf("Error when parsing response body: %s\n", err)
-		if e, ok := err.(*json.SyntaxError); ok {
-			fmt.Printf("Syntax error at byte offset %d\n", e.Offset)
-		}
-		log.Fatal(err)
 	}
-	return cveHistoryResp.TotalResults
+	return bodyJson.TotalResults
 }
