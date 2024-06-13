@@ -15,8 +15,8 @@ import (
 
 func Connect(uri string) *mongo.Client {
 	if uri == "" {
-		// panic("Please provide MongoDB connection URI")
-		uri = "mongodb://localhost:27100"
+		panic("Please provide MongoDB connection URI")
+		// uri = "mongodb://localhost:27100"
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -28,6 +28,10 @@ func Connect(uri string) *mongo.Client {
 	}
 
 	return client
+}
+
+func ConstructUri(host string, port uint32) string {
+	return fmt.Sprintf("mongodb://%s:%d", host, port)
 }
 
 func InsertOne(client mongo.Client, database, collection string, cve model.Cve) {
