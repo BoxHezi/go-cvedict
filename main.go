@@ -1,10 +1,15 @@
 package main
 
 import (
+	"log"
+
 	cmd "cve-dict/services/cmd"
 )
 
 func main() {
-	rootCmd := cmd.InitCmd()
+	rootCmd, err := cmd.InitCmd()
+	if err != nil {
+		log.Fatal(err)
+	}
 	rootCmd.Execute()
 }

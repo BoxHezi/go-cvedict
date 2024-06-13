@@ -13,10 +13,13 @@ import (
 	model "cve-dict/model"
 )
 
+func ConstructUri(host string, port uint32) string {
+	return fmt.Sprintf("mongodb://%s:%d", host, port)
+}
+
 func Connect(uri string) *mongo.Client {
 	if uri == "" {
 		panic("Please provide MongoDB connection URI")
-		// uri = "mongodb://localhost:27100"
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -30,11 +33,15 @@ func Connect(uri string) *mongo.Client {
 	return client
 }
 
-func ConstructUri(host string, port uint32) string {
-	return fmt.Sprintf("mongodb://%s:%d", host, port)
+func TestConnection(client *mongo.Client) error {
+	err := client.Ping(context.TODO(), nil)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func InsertOne(client mongo.Client, database, collection string, cve model.Cve) {
+func InsertOne(client *mongo.Client, database, collection string, cve model.Cve) {
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
@@ -43,10 +50,10 @@ func InsertOne(client mongo.Client, database, collection string, cve model.Cve) 
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("Inserted document with ID:", result.InsertedID)
+	fmt.Printf("[INFO] Database: %s, Insert %s successfully, ID: %s\n", database, cve.Id, result.InsertedID)
 }
 
-func InsertMany(client mongo.Client, database, collection string, cves []model.Cve) {
+func InsertMany(client *mongo.Client, database, collection string, cves []model.Cve) {
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
@@ -63,7 +70,7 @@ func InsertMany(client mongo.Client, database, collection string, cves []model.C
 	fmt.Printf("[INFO] Database: %s, Insert %d documents to Collection: %s\n", database, len(result.InsertedIDs), collection)
 }
 
-func UpdateOne(client mongo.Client, database, collection, cveId string, cve model.Cve) {
+func UpdateOne(client *mongo.Client, database, collection, cveId string, cve model.Cve) {
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
@@ -77,7 +84,7 @@ func UpdateOne(client mongo.Client, database, collection, cveId string, cve mode
 	fmt.Printf("[INFO] Database: %s, Update %s successfully\n", database, cveId)
 }
 
-func DeleteOne(client mongo.Client, database, collection, cveId string) {
+func DeleteOne(client *mongo.Client, database, collection, cveId string) {
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
@@ -91,7 +98,7 @@ func DeleteOne(client mongo.Client, database, collection, cveId string) {
 	// fmt.Printf("DeletedCount: %d, DeletedID: %v\n", result.DeletedCount, cveId)
 }
 
-func Query(client mongo.Client, database, collection string, filter bson.D) *mongo.Cursor {
+func Query(client *mongo.Client, database, collection string, filter bson.D) *mongo.Cursor {
 	ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
 	defer cancel()
 
@@ -103,6 +110,6 @@ func Query(client mongo.Client, database, collection string, filter bson.D) *mon
 	return cursor
 }
 
-func Disconnect(client mongo.Client) {
+func Disconnect(client *mongo.Client) {
 	client.Disconnect(context.TODO())
 }

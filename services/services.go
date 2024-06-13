@@ -1,79 +1,38 @@
 package services
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
-	"log"
-	"os"
 	"time"
 
 	model "cve-dict/model"
-
-	git "cve-dict/services/git"
-	nvd "cve-dict/services/nvd"
+	db "cve-dict/services/database"
 )
 
-func readJson(path string) []byte {
-	file, err := os.Open(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
+func DoUpdateDatabase(host string, port uint32, database, collection string, addedCves, modifiedCves, deletedCves []model.Cve) {
+	client := db.Connect(db.ConstructUri(host, port))
+	defer db.Disconnect(client)
 
-	data, err := io.ReadAll(file)
-	if err != nil {
-		log.Fatal(err)
+	if len(addedCves) > 0 {
+		db.InsertMany(client, database, collection, addedCves)
 	}
-	return data
+
+	for _, c := range modifiedCves {
+		db.UpdateOne(client, database, collection, c.Id, c)
+	}
+
+	for _, c := range deletedCves {
+		db.DeleteOne(client, database, collection, c.Id)
+	}
 }
 
-// json2Cve generates a map of CVEs grouped by year from the given list of file paths.
-//
-// paths: a slice of strings representing file paths to JSON files containing CVE data.
-// map[string][]model.Cve: a map where the keys are years and the values are slices of model.Cve structs.
-func json2Cve(paths []string) []model.Cve {
-	var cves []model.Cve = []model.Cve{}
-
-	// read JSON files => unmarshal into `cve` => store in `cves`
-	for _, path := range paths {
-		data := readJson(path)
-
-		var cve *model.Cve = new(model.Cve)
-		if err := json.Unmarshal(data, cve); err != nil {
-			fmt.Printf("Unable to parse JSON file: %s\nError: %s\n", path, err)
-			continue
-		}
-		cves = append(cves, *cve)
+// return: addedCves, modifiedCves, deletedCves
+func DoFetch(source string) ([]model.Cve, []model.Cve, []model.Cve) {
+	var addedCves, modifiedCves, deletedCves []model.Cve
+	if source == "nvd" {
+		addedCves, modifiedCves, deletedCves = fetchFromNvd()
+	} else if source == "git" {
+		addedCves, modifiedCves, deletedCves = fetchFromGit()
 	}
-
-	return cves
-}
-
-// return addedCves, modifiedCves, deletedCves
-func FetchFromGit() ([]model.Cve, []model.Cve, []model.Cve) {
-	cves := git.InitLocalRepo()
-
-	modifiedCves := json2Cve(cves[git.Modified])
-	deletedCves := json2Cve(cves[git.Deleted])
-	addedCves := json2Cve(cves[git.Added])
-
-	fmt.Printf("New CVEs: %d\n", len(addedCves))
-	fmt.Printf("Modified CVEs: %d\n", len(modifiedCves))
-	fmt.Printf("Deleted CVEs: %d\n", len(deletedCves))
-
 	return addedCves, modifiedCves, deletedCves
-}
-
-// return addedCves (fetch all)
-func FetchFromNvd() []model.Cve {
-	cves := nvd.FetchCves(nil)
-
-	// init status for nvd query
-	var nvdStatus model.NvdStatus = nvd.InitNvdStatus()
-	nvdStatus.SaveNvdStatus("./nvdStatus.json")
-
-	return cves
 }
 
 // return: addedCves, modifiedCves

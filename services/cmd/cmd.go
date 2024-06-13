@@ -13,17 +13,22 @@ import (
 	model "cve-dict/model"
 )
 
-const (
-	ErrFailingConnectToDatabase string = "failed to connect to database"
-)
-
-func InitCmd() *cobra.Command {
+func InitCmd() (*cobra.Command, error) {
 	rootCmd, rootFlags := initRootCmd()
+
+	// test datasbase connection
+	uri := db.ConstructUri(*rootFlags.GetAddressP(), *rootFlags.GetPortP())
+	client := db.Connect(uri)
+	defer db.Disconnect(client)
+	if err := db.TestConnection(client); err != nil {
+		return nil, err
+	}
+
 	updateCmd := initUpdateCmd(rootFlags)
 	fetchCmd := initFetchCmd(rootFlags)
 
 	rootCmd.AddCommand(updateCmd, fetchCmd)
-	return rootCmd
+	return rootCmd, nil
 }
 
 func initRootCmd() (*cobra.Command, *model.CmdFlags) {
@@ -41,10 +46,10 @@ func initRootCmd() (*cobra.Command, *model.CmdFlags) {
 	rootCmd.PersistentFlags().StringVarP(flags.GetDatabaseP(), "database", "d", "", "database name")
 	rootCmd.PersistentFlags().StringVarP(flags.GetCollectionP(), "collection", "c", "", "collection name")
 
-	rootCmd.ParseFlags(os.Args[1:]) // manually parse flags
-
 	rootCmd.MarkFlagRequired("database")
 	rootCmd.MarkFlagRequired("collection")
+
+	rootCmd.ParseFlags(os.Args[1:]) // manually parse flags
 
 	return rootCmd, flags
 }
@@ -58,11 +63,7 @@ func initUpdateCmd(rootFlags *model.CmdFlags) *cobra.Command {
 			nvdStatus.LoadNvdStatus("./nvdStatus.json")
 
 			addedCves, modefiedCves := services.DoUpdate(nvdStatus)
-
-			// update database
-			client := db.Connect(db.ConstructUri(*rootFlags.GetAddressP(), *rootFlags.GetPortP()))
-			defer db.Disconnect(*client)
-			services.UpdateDatabase(client, *rootFlags.GetDatabaseP(), *rootFlags.GetCollectionP(), addedCves, modefiedCves, nil)
+			services.DoUpdateDatabase(*rootFlags.GetAddressP(), *rootFlags.GetPortP(), *rootFlags.GetDatabaseP(), *rootFlags.GetCollectionP(), addedCves, modefiedCves, nil)
 
 			nvdStatus.SaveNvdStatus("./nvdStatus.json")
 		},
@@ -83,17 +84,8 @@ func initFetchCmd(rootFlags *model.CmdFlags) *cobra.Command {
 				return
 			}
 
-			client := db.Connect(db.ConstructUri(*rootFlags.GetAddressP(), *rootFlags.GetPortP()))
-			defer db.Disconnect(*client)
-
-			if args[0] == "nvd" {
-				cves := services.FetchFromNvd()
-				services.UpdateDatabase(client, *rootFlags.GetDatabaseP(), *rootFlags.GetCollectionP(), cves, nil, nil)
-			} else if args[0] == "git" {
-				addedCves, modifiedCves, deletedCves := services.FetchFromGit()
-				services.UpdateDatabase(client, *rootFlags.GetDatabaseP(), *rootFlags.GetCollectionP(), addedCves, modifiedCves, deletedCves)
-			}
-
+			addedCves, modifiedCves, deletedCves := services.DoFetch(args[0])
+			services.DoUpdateDatabase(*rootFlags.GetAddressP(), *rootFlags.GetPortP(), *rootFlags.GetDatabaseP(), *rootFlags.GetCollectionP(), addedCves, modifiedCves, deletedCves)
 		},
 		Args: cobra.ExactArgs(1), // either nvd or git
 	}
