@@ -1,31 +1,14 @@
 package services
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"log"
-	"os"
 
 	model "cve-dict/model"
 
+	cveServices "cve-dict/services/cve"
 	git "cve-dict/services/git"
 	nvd "cve-dict/services/nvd"
 )
-
-func readJson(path string) []byte {
-	file, err := os.Open(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-	data, err := io.ReadAll(file)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return data
-}
 
 // json2Cve generates a map of CVEs grouped by year from the given list of file paths.
 //
@@ -36,13 +19,8 @@ func json2Cve(paths []string) []model.Cve {
 
 	// read JSON files => unmarshal into `cve` => store in `cves`
 	for _, path := range paths {
-		data := readJson(path)
-
 		var cve *model.Cve = new(model.Cve)
-		if err := json.Unmarshal(data, cve); err != nil {
-			fmt.Printf("Unable to parse JSON file: %s\nError: %s\n", path, err)
-			continue
-		}
+		*cve = cveServices.ReadFromFile(path)
 		cves = append(cves, *cve)
 	}
 

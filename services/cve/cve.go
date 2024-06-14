@@ -2,7 +2,6 @@ package cve
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -13,6 +12,7 @@ import (
 
 func WriteToFile(cve model.Cve, filename string) {
 	if filename == "" {
+		// set default name for local file if not filename passed in
 		filename = cve.GenerateFilename()
 	}
 	parentDir := filepath.Dir(filename)
@@ -38,24 +38,19 @@ func WriteToFile(cve model.Cve, filename string) {
 	}
 }
 
-func GetCveById(id string) model.Cve {
-	var cve model.Cve = model.Cve{
-		Id: id,
-	}
-	filename := cve.GenerateFilename()
-
+func ReadFromFile(filename string) model.Cve {
 	file, err := os.Open(filename)
 	if err != nil {
-		err = fmt.Errorf("local cve json file not found: %s", err)
 		log.Fatal(err)
 	}
 	defer file.Close()
 
-	data, err := io.ReadAll(file) // read local CVE json file
+	data, err := io.ReadAll(file)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	var cve model.Cve
 	err = json.Unmarshal(data, &cve)
 	if err != nil {
 		log.Fatal(err)

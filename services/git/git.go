@@ -23,7 +23,7 @@ const (
 
 func filterFiles(files []string, path string, pattern string) []string {
 	if pattern == "" {
-		panic("Please provide pattern")
+		log.Fatal("Please provide pattern")
 	}
 
 	var filteredFiles []string = []string{}
@@ -71,7 +71,6 @@ func cloneRepo(localPath string) (*git.Repository, error) {
 	repo, err := git.PlainClone(localPath, false, &git.CloneOptions{
 		URL:      gitRepoUrl,
 		Progress: os.Stdout,
-		// Depth:    1,
 	})
 
 	if err == git.ErrRepositoryAlreadyExists {
@@ -96,7 +95,6 @@ func pull(repo *git.Repository) error {
 
 	err = wt.Pull(&git.PullOptions{
 		Progress: os.Stdout,
-		// Depth:    1,
 	})
 
 	// err: git.NoErrAlreadyUpToDate => local repo is up to date
@@ -154,9 +152,7 @@ func getCurrentHash(repo *git.Repository) (*plumbing.Hash, error) {
 // - map[string][]string: A map of updated files, where the keys represent the status of the files and the values are slices of file paths.
 func InitLocalRepo() map[string][]string {
 	var cveFiles = make(map[string][]string)
-	// fmt.Printf("Start cloning repo... %s\n", time.Now())
 	repo, err := cloneRepo(localRepoPath())
-	// fmt.Printf("Done cloning repo... %s\n", time.Now())
 
 	if err == git.ErrRepositoryAlreadyExists {
 		fmt.Println("Repository already exists, pulling from remote...")
