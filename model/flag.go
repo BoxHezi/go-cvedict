@@ -1,24 +1,24 @@
 package model
 
-type CmdFlags struct {
+type RootFlag struct {
 	address    string
 	port       uint32
 	database   string
 	collection string
 }
 
-func (c *CmdFlags) GetAddressP() *string {
+func (c *RootFlag) GetAddressP() *string {
 	return &c.address
 }
 
-func (c *CmdFlags) GetPortP() *uint32 {
+func (c *RootFlag) GetPortP() *uint32 {
 	return &c.port
 }
 
-func (c *CmdFlags) GetDatabaseP() *string {
+func (c *RootFlag) GetDatabaseP() *string {
 	return &c.database
 }
 
-func (c *CmdFlags) GetCollectionP() *string {
+func (c *RootFlag) GetCollectionP() *string {
 	return &c.collection
 }

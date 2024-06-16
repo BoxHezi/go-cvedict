@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	// "log"
-	// "os"
 	"slices"
 
 	"github.com/spf13/cobra"
@@ -14,6 +12,7 @@ import (
 	db "cve-dict/services/database"
 
 	model "cve-dict/model"
+	server "cve-dict/server"
 )
 
 func InitCmd() *cobra.Command {
@@ -22,12 +21,15 @@ func InitCmd() *cobra.Command {
 	updateCmd := initUpdateCmd(rootFlags)
 	fetchCmd := initFetchCmd(rootFlags)
 
-	rootCmd.AddCommand(updateCmd, fetchCmd)
+	// TODO: add server command
+	serverCmd := initServerCmd(rootFlags)
+
+	rootCmd.AddCommand(updateCmd, fetchCmd, serverCmd)
 	return rootCmd
 }
 
-func initRootCmd() (*cobra.Command, *model.CmdFlags) {
-	var flags *model.CmdFlags = new(model.CmdFlags)
+func initRootCmd() (*cobra.Command, *model.RootFlag) {
+	var flags *model.RootFlag = new(model.RootFlag)
 	rootCmd := &cobra.Command{
 		Use:   "cve-dict",
 		Short: "CVE dict",
@@ -43,6 +45,7 @@ func initRootCmd() (*cobra.Command, *model.CmdFlags) {
 				log.Fatalf("Database connection failed: %s", err)
 			}
 		},
+		TraverseChildren: true, // enabling duplicate flags for parent and child
 	}
 	rootCmd.PersistentFlags().StringVarP(flags.GetAddressP(), "address", "a", "127.0.0.1", "database address")
 	rootCmd.PersistentFlags().Uint32VarP(flags.GetPortP(), "port", "p", 27001, "database port")
@@ -55,7 +58,7 @@ func initRootCmd() (*cobra.Command, *model.CmdFlags) {
 	return rootCmd, flags
 }
 
-func initUpdateCmd(rootFlags *model.CmdFlags) *cobra.Command {
+func initUpdateCmd(rootFlags *model.RootFlag) *cobra.Command {
 	updateCmd := &cobra.Command{
 		Use:   "update",
 		Short: "Update CVE dict",
@@ -72,7 +75,7 @@ func initUpdateCmd(rootFlags *model.CmdFlags) *cobra.Command {
 	return updateCmd
 }
 
-func initFetchCmd(rootFlags *model.CmdFlags) *cobra.Command {
+func initFetchCmd(rootFlags *model.RootFlag) *cobra.Command {
 	sourceOptions := []string{"nvd", "git"}
 
 	fetchCmd := &cobra.Command{
@@ -92,4 +95,19 @@ func initFetchCmd(rootFlags *model.CmdFlags) *cobra.Command {
 	}
 
 	return fetchCmd
+}
+
+func initServerCmd(rootFlags *model.RootFlag) *cobra.Command {
+	var port uint32 = 8080
+	serverCmd := &cobra.Command{
+		Use:   "server",
+		Short: "Start server",
+		Run: func(cmd *cobra.Command, args []string) {
+			server.ServerMain(port, rootFlags)
+		},
+	}
+
+	serverCmd.Flags().Uint32VarP(&port, "port", "p", 8080, "server port")
+
+	return serverCmd
 }
