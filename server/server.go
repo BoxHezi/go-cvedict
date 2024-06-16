@@ -23,25 +23,27 @@ func ServerMain(port uint32, rootFlags *model.RootFlag) {
 	parseRootFlags(rootFlags)
 
 	router := gin.Default()
-	router.GET("/ping", handlePing)
-	router.GET("/cve/:cveid", handleCveid)
+	router.GET("/cve/id/:cveid", handleCveid)
+	router.GET("/cve/year/:year", handleCveByYear)
 
 	router.Run(fmt.Sprintf(":%d", port))
-}
-
-func handlePing(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"message": "pong",
-		"test":    "from handlePing",
-	})
 }
 
 func handleCveid(c *gin.Context) {
 	cveid := c.Param("cveid")
 
-	dbServices.QueryByCveId(dbConfig, cveid)
+	var cves []model.Cve = dbServices.QueryByCveId(dbConfig, cveid)
 
 	c.JSON(200, gin.H{
-		"cveid": cveid,
+		"data": cves,
+	})
+}
+
+func handleCveByYear(c *gin.Context) {
+	year := c.Param("year")
+
+	c.JSON(200, gin.H{
+		"data": dbServices.QueryByYear(dbConfig, year),
+		// "year": year,
 	})
 }
