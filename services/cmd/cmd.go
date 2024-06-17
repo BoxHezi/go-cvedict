@@ -37,8 +37,7 @@ func initRootCmd() (*cobra.Command, *model.RootFlag) {
 		// Run:   func(cmd *cobra.Command, args []string) {},
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			fmt.Printf("Testing Database Connection... - mongodb://%s:%d\n", *flags.GetAddressP(), *flags.GetPortP())
-			uri := db.ConstructUri(*flags.GetAddressP(), *flags.GetPortP())
-			client := db.Connect(uri)
+			client := db.Connect(db.ConstructUri(*flags.GetAddressP(), *flags.GetPortP()))
 			defer db.Disconnect(client)
 
 			if err := db.TestConnection(client); err != nil {
@@ -66,8 +65,10 @@ func initUpdateCmd(rootFlags *model.RootFlag) *cobra.Command {
 			var nvdStatus *model.NvdStatus = new(model.NvdStatus)
 			nvdStatus.LoadNvdStatus("./nvdStatus.json")
 
+			dbConfig := model.CreateDbConfig(*rootFlags)
+
 			addedCves, modefiedCves := services.DoUpdate(nvdStatus)
-			services.DoUpdateDatabase(*rootFlags.GetAddressP(), *rootFlags.GetPortP(), *rootFlags.GetDatabaseP(), *rootFlags.GetCollectionP(), addedCves, modefiedCves, nil)
+			services.DoUpdateDatabase(*dbConfig, addedCves, modefiedCves, nil)
 
 			nvdStatus.SaveNvdStatus("./nvdStatus.json")
 		},
@@ -88,8 +89,10 @@ func initFetchCmd(rootFlags *model.RootFlag) *cobra.Command {
 				return
 			}
 
+			dbConfig := model.CreateDbConfig(*rootFlags)
+
 			addedCves, modifiedCves, deletedCves := services.DoFetch(args[0])
-			services.DoUpdateDatabase(*rootFlags.GetAddressP(), *rootFlags.GetPortP(), *rootFlags.GetDatabaseP(), *rootFlags.GetCollectionP(), addedCves, modifiedCves, deletedCves)
+			services.DoUpdateDatabase(*dbConfig, addedCves, modifiedCves, deletedCves)
 		},
 		Args: cobra.ExactArgs(1), // either nvd or git
 	}
@@ -103,7 +106,8 @@ func initServerCmd(rootFlags *model.RootFlag) *cobra.Command {
 		Use:   "server",
 		Short: "Start server",
 		Run: func(cmd *cobra.Command, args []string) {
-			server.ServerMain(port, rootFlags)
+			dbConfig := model.CreateDbConfig(*rootFlags)
+			server.Run(port, dbConfig)
 		},
 	}
 

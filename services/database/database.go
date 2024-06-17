@@ -95,7 +95,6 @@ func DeleteOne(client *mongo.Client, database, collection, cveId string) {
 		log.Fatal(err)
 	}
 	fmt.Printf("[INFO] Database: %s, Delete %s successfully\n", database, cveId)
-	// fmt.Printf("DeletedCount: %d, DeletedID: %v\n", result.DeletedCount, cveId)
 }
 
 func Query(client *mongo.Client, database, collection string, filter bson.D) *mongo.Cursor {

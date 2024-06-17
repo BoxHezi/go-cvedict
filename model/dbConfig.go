@@ -7,6 +7,19 @@ type DbConfig struct {
 	Collection string
 }
 
+func CreateDbConfig(flags RootFlag) *DbConfig {
+	dbConfig := new(DbConfig)
+	dbConfig.setupDbConfig(flags)
+	return dbConfig
+}
+
+func (d *DbConfig) setupDbConfig(flags RootFlag) {
+	d.SetDbHost(*flags.GetAddressP())
+	d.SetDbPort(*flags.GetPortP())
+	d.SetDatabase(*flags.GetDatabaseP())
+	d.SetCollection(*flags.GetCollectionP())
+}
+
 func (d *DbConfig) SetDbHost(host string) {
 	d.DbHost = host
 }

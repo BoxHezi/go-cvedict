@@ -13,12 +13,12 @@ import (
 	db "cve-dict/services/database"
 )
 
-func connect(dbConfig model.DbConfig) *mongo.Client {
+func dbConnect(dbConfig model.DbConfig) *mongo.Client {
 	return db.Connect(db.ConstructUri(dbConfig.DbHost, dbConfig.DbPort))
 }
 
 func QueryByCveId(dbConfig model.DbConfig, cveId string) []model.Cve {
-	client := connect(dbConfig)
+	client := dbConnect(dbConfig)
 	defer db.Disconnect(client)
 
 	cursor := db.Query(client, dbConfig.Database, dbConfig.Collection, bson.D{{Key: "id", Value: cveId}})
@@ -32,7 +32,7 @@ func QueryByCveId(dbConfig model.DbConfig, cveId string) []model.Cve {
 }
 
 func QueryByYear(dbConfig model.DbConfig, year string) []model.Cve {
-	client := connect(dbConfig)
+	client := dbConnect(dbConfig)
 	defer db.Disconnect(client)
 
 	cursor := db.Query(client, dbConfig.Database, dbConfig.Collection, bson.D{{Key: "id", Value: bson.D{

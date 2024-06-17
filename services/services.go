@@ -7,20 +7,20 @@ import (
 	db "cve-dict/services/database"
 )
 
-func DoUpdateDatabase(host string, port uint32, database, collection string, addedCves, modifiedCves, deletedCves []model.Cve) {
-	client := db.Connect(db.ConstructUri(host, port))
+func DoUpdateDatabase(dbConfig model.DbConfig, addedCves, modifiedCves, deletedCves []model.Cve) {
+	client := dbConnect(dbConfig)
 	defer db.Disconnect(client)
 
 	if len(addedCves) > 0 {
-		db.InsertMany(client, database, collection, addedCves)
+		db.InsertMany(client, dbConfig.Database, dbConfig.Collection, addedCves)
 	}
 
 	for _, c := range modifiedCves {
-		db.UpdateOne(client, database, collection, c.Id, c)
+		db.UpdateOne(client, dbConfig.Database, dbConfig.Collection, c.Id, c)
 	}
 
 	for _, c := range deletedCves {
-		db.DeleteOne(client, database, collection, c.Id)
+		db.DeleteOne(client, dbConfig.Database, dbConfig.Collection, c.Id)
 	}
 }
 
