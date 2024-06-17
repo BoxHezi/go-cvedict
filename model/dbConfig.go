@@ -9,15 +9,11 @@ type DbConfig struct {
 
 func CreateDbConfig(flags RootFlag) *DbConfig {
 	dbConfig := new(DbConfig)
-	dbConfig.setupDbConfig(flags)
+	dbConfig.SetDbHost(*flags.GetAddressP())
+	dbConfig.SetDbPort(*flags.GetPortP())
+	dbConfig.SetDatabase(*flags.GetDatabaseP())
+	dbConfig.SetCollection(*flags.GetCollectionP())
 	return dbConfig
-}
-
-func (d *DbConfig) setupDbConfig(flags RootFlag) {
-	d.SetDbHost(*flags.GetAddressP())
-	d.SetDbPort(*flags.GetPortP())
-	d.SetDatabase(*flags.GetDatabaseP())
-	d.SetCollection(*flags.GetCollectionP())
 }
 
 func (d *DbConfig) SetDbHost(host string) {

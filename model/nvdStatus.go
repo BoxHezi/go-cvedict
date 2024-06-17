@@ -15,6 +15,12 @@ type NvdStatus struct {
 	CveHistoryCount int `json:"cveHistoryCount"`
 }
 
+func InitNvdStatus() *NvdStatus {
+	nvdStatus := new(NvdStatus)
+	nvdStatus.LoadNvdStatus("./nvdStatus.json")
+	return nvdStatus
+}
+
 func (n *NvdStatus) SetCveCount(count int) {
 	n.CveCount = count
 }

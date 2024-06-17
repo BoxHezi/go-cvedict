@@ -45,8 +45,7 @@ func handleCveByYear(c *gin.Context) {
 }
 
 func handleUpdate(c *gin.Context) {
-	var nvdStatus *model.NvdStatus = new(model.NvdStatus)
-	nvdStatus.LoadNvdStatus("./nvdStatus.json")
+	nvdStatus := model.InitNvdStatus()
 
 	addedCves, modefiedCves := services.DoUpdate(nvdStatus)
 	go services.DoUpdateDatabase(*dbConfig, addedCves, modefiedCves, nil)

@@ -60,9 +60,7 @@ func initUpdateCmd(rootFlags *model.RootFlag) *cobra.Command {
 		Use:   "update",
 		Short: "Update CVE dict",
 		Run: func(cmd *cobra.Command, args []string) {
-			var nvdStatus *model.NvdStatus = new(model.NvdStatus)
-			nvdStatus.LoadNvdStatus("./nvdStatus.json")
-
+			nvdStatus := model.InitNvdStatus()
 			dbConfig := model.CreateDbConfig(*rootFlags)
 
 			addedCves, modefiedCves := services.DoUpdate(nvdStatus)
