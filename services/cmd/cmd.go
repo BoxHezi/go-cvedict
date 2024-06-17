@@ -20,8 +20,6 @@ func InitCmd() *cobra.Command {
 
 	updateCmd := initUpdateCmd(rootFlags)
 	fetchCmd := initFetchCmd(rootFlags)
-
-	// TODO: add server command
 	serverCmd := initServerCmd(rootFlags)
 
 	rootCmd.AddCommand(updateCmd, fetchCmd, serverCmd)
@@ -88,7 +86,6 @@ func initFetchCmd(rootFlags *model.RootFlag) *cobra.Command {
 				fmt.Printf("Valid source options: %s\n", sourceOptions)
 				return
 			}
-
 			dbConfig := model.CreateDbConfig(*rootFlags)
 
 			addedCves, modifiedCves, deletedCves := services.DoFetch(args[0])
