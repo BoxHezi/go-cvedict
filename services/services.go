@@ -8,7 +8,7 @@ import (
 )
 
 func DoUpdateDatabase(dbConfig model.DbConfig, addedCves, modifiedCves, deletedCves []model.Cve) {
-	client := dbConnect(dbConfig)
+	client := db.Connect(db.ConstructUri(dbConfig.DbHost, dbConfig.DbPort))
 	defer db.Disconnect(client)
 
 	if len(addedCves) > 0 {

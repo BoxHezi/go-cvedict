@@ -18,8 +18,8 @@ type Cve struct {
 	Status           string          `json:"vulnStatus"`
 	Descriptions     []desc          `json:"descriptions"`
 	Metrics          metrics         `json:"metrics"`
-	Weaknesses       []weakness      `json:"weaknesses"`
-	Configurations   []configuration `json:"configurations"`
+	Weaknesses       []weakness      `json:"weaknesses,omitempty"`
+	Configurations   []configuration `json:"configurations,omitempty"`
 	References       []reference     `json:"references"`
 }
 
@@ -29,9 +29,9 @@ type desc struct {
 }
 
 type metrics struct {
-	CvssMetricV31 []cvss31 `json:"cvssMetricV31"`
-	CvssMetricV30 []cvss30 `json:"cvssMetricV30"`
-	CvssMetricV2  []cvss2  `json:"cvssMetricV2"`
+	CvssMetricV31 []cvss31 `json:"cvssMetricV31,omitempty"`
+	CvssMetricV30 []cvss30 `json:"cvssMetricV30,omitempty"`
+	CvssMetricV2  []cvss2  `json:"cvssMetricV2,omitempty"`
 }
 
 type cvss31 struct {
@@ -117,7 +117,7 @@ type cpeMatch struct {
 type reference struct {
 	Url    string   `json:"url"`
 	Source string   `json:"source"`
-	Tags   []string `json:"tags"`
+	Tags   []string `json:"tags,omitempty"`
 }
 
 // Cve Change
