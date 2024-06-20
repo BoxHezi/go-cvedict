@@ -6,10 +6,11 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	model "cve-dict/model"
+
+	utils "cve-dict/utils"
 )
 
 const (
@@ -18,9 +19,9 @@ const (
 	incremental   int    = 2000
 )
 
-func currentHourMinuteSecond() string {
-	return fmt.Sprintf("%02d:%02d:%02d", time.Now().Hour(), time.Now().Minute(), time.Now().Second())
-}
+var (
+	nvdReq *model.NvdRequestStatus = model.CreateNvdRequestStatus()
+)
 
 func constructUrl(baseUrl string, param map[string]string) string {
 	var p string // parameters string
@@ -35,31 +36,19 @@ func constructUrl(baseUrl string, param map[string]string) string {
 	return fmt.Sprintf("%s?%s", baseUrl, p)
 }
 
-func nvdKey() string {
-	return os.Getenv("NVD_KEY")
-}
+func sendQuery(url string) *http.Response {
+	nvdReq.Wait()
 
-func waitForNextRequest(start, end time.Time, key string) {
-	duration := end.Sub(start)
-	waitBase := 6 * time.Second
-
-	if key != "" {
-		// NVD API rate limit is 0.6 request/second
-		waitBase = 1 * time.Second
-	}
-
-	if duration < waitBase {
-		time.Sleep(waitBase - duration)
-	}
-}
-
-func sendQuery(url string, key string) *http.Response {
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", url, nil)
-	if key != "" {
-		req.Header.Set("apiKey", nvdKey())
+	if nvdReq.NvdKey != "" {
+		req.Header.Set("apiKey", nvdReq.NvdKey)
 	}
-	fmt.Println("[INFO]", currentHourMinuteSecond(), url)
+	utils.LogInfo(url)
+
+	nvdReq.SetReqTime(time.Now())
+	nvdReq.SetReqUrl(url)
+
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error when sending request")
@@ -85,7 +74,7 @@ func readRespBody(resp *http.Response) []byte {
 // - result: a pointer to the struct that will hold the parsed data.
 //
 // Returns:
-// - error: an error if the JSON parsing fails.
+// - error: an error if the JSON parsing fails. or nil if there is no error
 func parseRespBody[T model.NvdCvesResp | model.NvdCvesHistoryResp](body []byte, result *T) error {
 	if err := json.Unmarshal(body, &result); err != nil {
 		fmt.Printf("Error when parsing response body: %s\n", err)
@@ -103,22 +92,19 @@ func fetchAll() []model.Cve {
 	var totalResults int = 0
 	var cves []model.Cve = []model.Cve{}
 
-	key := nvdKey()
-	fmt.Println(currentHourMinuteSecond(), "-", "Start Fetching CVEs from NVD...")
+	// fmt.Println(currentHourMinuteSecond(), "-", "Start Fetching CVEs from NVD...")
+	utils.LogInfo("Start Fetching CVEs from NVD...")
 	start := time.Now()
 	for {
 		url := constructUrl(nvdUrl, map[string]string{"startIndex": fmt.Sprintf("%d", index)})
-		t1 := time.Now()
-		resp := sendQuery(url, key)
+		resp := sendQuery(url)
 		body := readRespBody(resp)
-		t2 := time.Now()
 
 		// Parse Response Body to CVE/JSONs
 		var bodyJson *model.NvdCvesResp = new(model.NvdCvesResp)
 		err := parseRespBody(body, bodyJson)
 		if err != nil {
-			fmt.Println("Wait for 6 seconds and try again...")
-			time.Sleep(6 * time.Second)
+			fmt.Printf("Try again: %s\n", url)
 			continue
 		}
 
@@ -129,10 +115,8 @@ func fetchAll() []model.Cve {
 		if index >= totalResults {
 			break
 		}
-
-		waitForNextRequest(t1, t2, key) // NVD request rate limit: 6 seconds per request if without API key; 1 second per request if with API key
 	}
-	fmt.Println(currentHourMinuteSecond(), "-", "Done Fetching CVEs from NVD...")
+	utils.LogInfo("Done Fetching CVEs from NVD...")
 	end := time.Now()
 	totalDuration := end.Sub(start)
 	fmt.Printf("Fetched %d CVEs in %v\n", len(cves), totalDuration)
@@ -148,14 +132,13 @@ func FetchCves(param map[string]string) []model.Cve {
 	var cves []model.Cve = []model.Cve{}
 	for { // add loop to retry if error occurs
 		url := constructUrl(nvdUrl, param)
-		resp := sendQuery(url, nvdKey())
+		resp := sendQuery(url)
 		body := readRespBody(resp)
 
 		var bodyJson *model.NvdCvesResp = new(model.NvdCvesResp)
 		err := parseRespBody(body, bodyJson)
 		if err != nil {
-			fmt.Println("Wait for 6 seconds and try again...")
-			time.Sleep(6 * time.Second)
+			fmt.Printf("Try again: %s\n", url)
 			continue
 		}
 
@@ -169,7 +152,7 @@ func FetchCves(param map[string]string) []model.Cve {
 func FetchCvesHistory(param map[string]string) []model.CveChange {
 	var cveChanges []model.CveChange
 	url := constructUrl(nvdHistoryUrl, param)
-	resp := sendQuery(url, nvdKey())
+	resp := sendQuery(url)
 	body := readRespBody(resp)
 
 	var bodyJson *model.NvdCvesHistoryResp = new(model.NvdCvesHistoryResp)
@@ -191,10 +174,8 @@ func FetchCvesHistory(param map[string]string) []model.CveChange {
 func InitNvdStatus() model.NvdStatus {
 	var status *model.NvdStatus = new(model.NvdStatus)
 
-	t1 := time.Now()
-	status.SetCveCount(initNvdCveStatus()) // query cve endpoint to set up the number of CVEs
-	t2 := time.Now()
-	waitForNextRequest(t1, t2, "")
+	// query cve endpoint to set up the number of CVEs
+	status.SetCveCount(initNvdCveStatus())
 
 	// query cve history endpoint to set up the number of CVE history
 	status.SetCveHistoryCount(initNvdCveHistoryStatus())
@@ -204,7 +185,7 @@ func InitNvdStatus() model.NvdStatus {
 
 func initNvdCveStatus() int {
 	url := constructUrl(nvdUrl, map[string]string{"startIndex": "0", "resultsPerPage": "1"})
-	resp := sendQuery(url, nvdKey())
+	resp := sendQuery(url)
 	body := readRespBody(resp)
 
 	var bodyJson *model.NvdCvesResp = new(model.NvdCvesResp)
@@ -217,7 +198,7 @@ func initNvdCveStatus() int {
 
 func initNvdCveHistoryStatus() int {
 	url := constructUrl(nvdHistoryUrl, map[string]string{"startIndex": "0", "resultsPerPage": "1"})
-	resp := sendQuery(url, nvdKey())
+	resp := sendQuery(url)
 	body := readRespBody(resp)
 
 	var bodyJson *model.NvdCvesHistoryResp = new(model.NvdCvesHistoryResp)
