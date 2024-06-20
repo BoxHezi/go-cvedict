@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"slices"
-
 	"github.com/spf13/cobra"
 
 	services "cve-dict/services"
@@ -73,21 +71,13 @@ func initUpdateCmd(rootFlags *model.RootFlag) *cobra.Command {
 }
 
 func initFetchCmd(rootFlags *model.RootFlag) *cobra.Command {
-	sourceOptions := []string{"nvd", "git"}
-
 	fetchCmd := &cobra.Command{
 		Use:   "fetch",
 		Short: "CVE dict",
 		Run: func(cmd *cobra.Command, args []string) {
-			if !slices.Contains(sourceOptions, args[0]) {
-				fmt.Printf("Unknown	source: %s\n", args[0])
-				fmt.Printf("Valid source options: %s\n", sourceOptions)
-				return
-			}
 			dbConfig := model.CreateDbConfig(*rootFlags)
-			services.DoFetch(args[0], *dbConfig)
+			services.DoFetch(*dbConfig)
 		},
-		Args: cobra.ExactArgs(1), // either nvd or git
 	}
 
 	return fetchCmd
