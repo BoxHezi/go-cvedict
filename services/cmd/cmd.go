@@ -45,7 +45,7 @@ func initRootCmd() (*cobra.Command, *model.RootFlag) {
 		TraverseChildren: true, // enabling duplicate flags for parent and child
 	}
 	rootCmd.PersistentFlags().StringVarP(flags.GetAddressP(), "address", "a", "127.0.0.1", "database address")
-	rootCmd.PersistentFlags().Uint32VarP(flags.GetPortP(), "port", "p", 27001, "database port")
+	rootCmd.PersistentFlags().Uint32VarP(flags.GetPortP(), "port", "p", 27017, "database port")
 	rootCmd.PersistentFlags().StringVarP(flags.GetDatabaseP(), "database", "d", "", "database name")
 	rootCmd.PersistentFlags().StringVarP(flags.GetCollectionP(), "collection", "c", "", "collection name")
 
