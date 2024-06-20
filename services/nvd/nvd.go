@@ -87,48 +87,44 @@ func parseRespBody[T model.NvdCvesResp | model.NvdCvesHistoryResp](body []byte, 
 	return nil
 }
 
-func fetchAll() []model.Cve {
-	var index int = 0
-	var totalResults int = 0
-	var cves []model.Cve = []model.Cve{}
+// func fetchAll() []model.Cve {
+// 	var index int = 0
+// 	var totalResults int = 0
+// 	var cves []model.Cve = []model.Cve{}
 
-	// fmt.Println(currentHourMinuteSecond(), "-", "Start Fetching CVEs from NVD...")
-	utils.LogInfo("Start Fetching CVEs from NVD...")
-	start := time.Now()
-	for {
-		url := constructUrl(nvdUrl, map[string]string{"startIndex": fmt.Sprintf("%d", index)})
-		resp := sendQuery(url)
-		body := readRespBody(resp)
+// 	// fmt.Println(currentHourMinuteSecond(), "-", "Start Fetching CVEs from NVD...")
+// 	utils.LogInfo("Start Fetching CVEs from NVD...")
+// 	start := time.Now()
+// 	for {
+// 		url := constructUrl(nvdUrl, map[string]string{"startIndex": fmt.Sprintf("%d", index)})
+// 		resp := sendQuery(url)
+// 		body := readRespBody(resp)
 
-		// Parse Response Body to CVE/JSONs
-		var bodyJson *model.NvdCvesResp = new(model.NvdCvesResp)
-		err := parseRespBody(body, bodyJson)
-		if err != nil {
-			fmt.Printf("Try again: %s\n", url)
-			continue
-		}
+// 		// Parse Response Body to CVE/JSONs
+// 		var bodyJson *model.NvdCvesResp = new(model.NvdCvesResp)
+// 		err := parseRespBody(body, bodyJson)
+// 		if err != nil {
+// 			fmt.Printf("Try again: %s\n", url)
+// 			continue
+// 		}
 
-		cves = append(cves, bodyJson.UnpackCve()...) // store all vulns into a slice/arrays
+// 		cves = append(cves, bodyJson.UnpackCve()...) // store all vulns into a slice/arrays
 
-		totalResults = bodyJson.TotalResults
-		index += incremental
-		if index >= totalResults {
-			break
-		}
-	}
-	utils.LogInfo("Done Fetching CVEs from NVD...")
-	end := time.Now()
-	totalDuration := end.Sub(start)
-	fmt.Printf("Fetched %d CVEs in %v\n", len(cves), totalDuration)
+// 		totalResults = bodyJson.TotalResults
+// 		index += incremental
+// 		if index >= totalResults {
+// 			break
+// 		}
+// 	}
+// 	utils.LogInfo("Done Fetching CVEs from NVD...")
+// 	end := time.Now()
+// 	totalDuration := end.Sub(start)
+// 	fmt.Printf("Fetched %d CVEs in %v\n", len(cves), totalDuration)
 
-	return cves
-}
+// 	return cves
+// }
 
 func FetchCves(param map[string]string) []model.Cve {
-	if param == nil {
-		return fetchAll()
-	}
-
 	var cves []model.Cve = []model.Cve{}
 	for { // add loop to retry if error occurs
 		url := constructUrl(nvdUrl, param)

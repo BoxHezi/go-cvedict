@@ -85,9 +85,7 @@ func initFetchCmd(rootFlags *model.RootFlag) *cobra.Command {
 				return
 			}
 			dbConfig := model.CreateDbConfig(*rootFlags)
-
-			addedCves, modifiedCves, deletedCves := services.DoFetch(args[0])
-			services.DoUpdateDatabase(*dbConfig, addedCves, modifiedCves, deletedCves)
+			services.DoFetch(args[0], *dbConfig)
 		},
 		Args: cobra.ExactArgs(1), // either nvd or git
 	}

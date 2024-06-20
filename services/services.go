@@ -25,12 +25,12 @@ func DoUpdateDatabase(dbConfig model.DbConfig, addedCves, modifiedCves, deletedC
 }
 
 // return: addedCves, modifiedCves, deletedCves
-func DoFetch(source string) ([]model.Cve, []model.Cve, []model.Cve) {
+func DoFetch(source string, dbConfig model.DbConfig) ([]model.Cve, []model.Cve, []model.Cve) {
 	var addedCves, modifiedCves, deletedCves []model.Cve
 	if source == "nvd" {
-		addedCves, modifiedCves, deletedCves = fetchFromNvd()
+		addedCves, modifiedCves, deletedCves = fetchFromNvd(dbConfig)
 	} else if source == "git" {
-		addedCves, modifiedCves, deletedCves = fetchFromGit()
+		addedCves, modifiedCves, deletedCves = fetchFromGit(dbConfig)
 	}
 	return addedCves, modifiedCves, deletedCves
 }

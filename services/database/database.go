@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	model "cve-dict/model"
+	utils "cve-dict/utils"
 )
 
 func ConstructUri(host string, port uint32) string {
@@ -50,7 +51,7 @@ func InsertOne(client *mongo.Client, database, collection string, cve model.Cve)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("[INFO] Database: %s, Insert %s successfully, ID: %s\n", database, cve.Id, result.InsertedID)
+	utils.LogInfo(fmt.Sprintf("Database: %s, Insert %s successfully, ID: %s", database, cve.Id, result.InsertedID))
 }
 
 func InsertMany(client *mongo.Client, database, collection string, cves []model.Cve) {
@@ -67,7 +68,7 @@ func InsertMany(client *mongo.Client, database, collection string, cves []model.
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("[INFO] Database: %s, Insert %d documents to Collection: %s\n", database, len(result.InsertedIDs), collection)
+	utils.LogInfo(fmt.Sprintf("Database: %s, Insert %d documents to Collection: %s", database, len(result.InsertedIDs), collection))
 }
 
 func UpdateOne(client *mongo.Client, database, collection, cveId string, cve model.Cve) {
@@ -81,7 +82,7 @@ func UpdateOne(client *mongo.Client, database, collection, cveId string, cve mod
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("[INFO] Database: %s, Update %s successfully\n", database, cveId)
+	utils.LogInfo(fmt.Sprintf("Database: %s, Update %s successfully", database, cveId))
 }
 
 func DeleteOne(client *mongo.Client, database, collection, cveId string) {
@@ -94,7 +95,7 @@ func DeleteOne(client *mongo.Client, database, collection, cveId string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("[INFO] Database: %s, Delete %s successfully\n", database, cveId)
+	utils.LogInfo(fmt.Sprintf("Database: %s, Delete %s successfully", database, cveId))
 }
 
 func Query(client *mongo.Client, database, collection string, filter bson.D) *mongo.Cursor {
