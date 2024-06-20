@@ -10,6 +10,8 @@ import (
 	nvd "cve-dict/services/nvd"
 )
 
+const incremental int = 2000
+
 // return addedCves, modifiedCves, deletedCves
 // modifiedCves and deletedCves are nil
 func fetchFromNvd(dbConfig model.DbConfig) ([]model.Cve, []model.Cve, []model.Cve) {
@@ -20,20 +22,19 @@ func fetchFromNvd(dbConfig model.DbConfig) ([]model.Cve, []model.Cve, []model.Cv
 	start := time.Now()
 	for {
 		tempCves := nvd.FetchCves(map[string]string{"startIndex": fmt.Sprintf("%d", index)})
-		if len(tempCves) == 0 {
+		if len(tempCves) == 0 { // finished fetching
 			go DoUpdateDatabase(dbConfig, cves, nil, nil)
 			break
 		}
 
 		cves = append(cves, tempCves...)
-
 		if len(cves)%20000 == 0 {
 			go DoUpdateDatabase(dbConfig, cves, nil, nil)
 			cves = nil
 		}
 
 		totalResults += len(tempCves)
-		index += 2000
+		index += incremental
 	}
 	utils.LogInfo("Done Fetching CVEs from NVD...")
 	end := time.Now()

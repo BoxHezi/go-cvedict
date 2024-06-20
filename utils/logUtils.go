@@ -17,12 +17,8 @@ const (
 func currentHourMinuteSecond() string {
 	dt := time.Now()
 
-	year := dt.Year()
-	month := dt.Month()
-	day := dt.Day()
-	hour := dt.Hour()
-	minute := dt.Minute()
-	second := dt.Second()
+	year, month, day := dt.Date()
+	hour, minute, second := dt.Clock()
 	return fmt.Sprintf("%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second)
 }
 
