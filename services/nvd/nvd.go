@@ -14,9 +14,9 @@ const (
 	nvdUrl        string = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 	nvdHistoryUrl string = "https://services.nvd.nist.gov/rest/json/cvehistory/2.0"
 
-	errSendRequest string = "error when sending request"
-	errReadBody    string = "error when reading response body"
-	errParseBody   string = "error when parsing response body"
+	errSendRequestHint string = "error when sending request"
+	errReadBodyHint    string = "error when reading response body"
+	errParseBodyHint   string = "error when parsing response body"
 )
 
 var (
@@ -52,63 +52,53 @@ func parseRespBody[T model.NvdCvesResp | model.NvdCvesHistoryResp](body []byte, 
 	return nil
 }
 
-func FetchCves(params map[string]string) []model.Cve {
-	var cves []model.Cve = []model.Cve{}
-	for { // add loop to retry if error occurs
-		nvdReq.Prepare(nvdUrl, params)
+func doRequest[T model.NvdCvesResp | model.NvdCvesHistoryResp](respHolder *T) {
+	var count int = 0
+	for {
+		if count >= 10 {
+			utils.LogFatal(fmt.Errorf("reach maximum retry. abort.\nrequest URL: %s", nvdReq.FullReqUrl()))
+		}
+
 		resp, err := nvdReq.Send()
 		if err != nil {
-			utils.LogError(fmt.Errorf("%s: %s", errSendRequest, err))
+			utils.LogError(fmt.Errorf("%s: %s", errSendRequestHint, err))
+			count++
 			continue
 		}
 
 		body, err := readRespBody(resp)
 		if err != nil {
-			utils.LogError(fmt.Errorf("%s: %s", errReadBody, err))
+			utils.LogError(fmt.Errorf("%s: %s", errReadBodyHint, err))
+			count++
 			continue
 		}
 
-		var nvdCveResp *model.NvdCvesResp = new(model.NvdCvesResp)
-		err = parseRespBody(body, nvdCveResp)
+		err = parseRespBody(body, respHolder)
 		if err != nil {
-			utils.LogError(fmt.Errorf("%s: %s", errParseBody, err))
+			utils.LogError(fmt.Errorf("%s: %s", errParseBodyHint, err))
+			count++
 			continue
 		}
 
-		cves = nvdCveResp.UnpackCve()
-		break
+		// utils.LogDebug(fmt.Sprintf("\n%+v\n", container))
+		return
 	}
+}
 
-	return cves
+func FetchCves(params map[string]string) []model.Cve {
+	nvdReq.Prepare(nvdUrl, params)
+
+	var nvdCvesResp *model.NvdCvesResp = new(model.NvdCvesResp)
+	doRequest(nvdCvesResp)
+	return nvdCvesResp.UnpackCve()
 }
 
 func FetchCvesHistory(params map[string]string) []model.CveChange {
-	var cveChanges []model.CveChange
-	for {
-		nvdReq.Prepare(nvdHistoryUrl, params)
-		resp, err := nvdReq.Send()
-		if err != nil {
-			utils.LogError(fmt.Errorf("%s: %s", errSendRequest, err))
-			continue
-		}
+	nvdReq.Prepare(nvdHistoryUrl, params)
 
-		body, err := readRespBody(resp)
-		if err != nil {
-			utils.LogError(fmt.Errorf("%s: %s", errReadBody, err))
-			continue
-		}
-
-		var nvdCvesHistoryResp *model.NvdCvesHistoryResp = new(model.NvdCvesHistoryResp)
-		err = parseRespBody(body, nvdCvesHistoryResp)
-		if err != nil {
-			utils.LogError(fmt.Errorf("%s: %s", errParseBody, err))
-			continue
-		}
-
-		cveChanges = nvdCvesHistoryResp.UnpackCveChange()
-		break
-	}
-	return cveChanges
+	var nvdCvesHistoryResp *model.NvdCvesHistoryResp = new(model.NvdCvesHistoryResp)
+	doRequest(nvdCvesHistoryResp)
+	return nvdCvesHistoryResp.UnpackCveChange()
 }
 
 // initialize NvdStatus
@@ -128,59 +118,19 @@ func InitNvdStatus() model.NvdStatus {
 }
 
 func initNvdCveStatus() int {
-	var totalResults int = 0
-	for {
-		nvdReq.Prepare(nvdUrl, map[string]string{"startIndex": "0", "resultsPerPage": "1"})
-		resp, err := nvdReq.Send()
-		if err != nil {
-			utils.LogError(fmt.Errorf("%s: %s", errSendRequest, err))
-			continue
-		}
+	nvdReq.Prepare(nvdUrl, map[string]string{"startIndex": "0", "resultsPerPage": "1"})
 
-		body, err := readRespBody(resp)
-		if err != nil {
-			utils.LogError(fmt.Errorf("%s: %s", errReadBody, err))
-			continue
-		}
+	var nvdCvesResp *model.NvdCvesResp = new(model.NvdCvesResp)
+	doRequest(nvdCvesResp)
 
-		var nvdCveResp *model.NvdCvesResp = new(model.NvdCvesResp)
-		err = parseRespBody(body, nvdCveResp)
-		if err != nil {
-			utils.LogError(fmt.Errorf("%s: %s", errParseBody, err))
-			continue
-		}
-
-		totalResults = nvdCveResp.TotalResults
-		break
-	}
-	return totalResults
+	return nvdCvesResp.TotalResults
 }
 
 func initNvdCveHistoryStatus() int {
-	var totalResults int = 0
-	for {
-		nvdReq.Prepare(nvdHistoryUrl, map[string]string{"startIndex": "0", "resultsPerPage": "1"})
-		resp, err := nvdReq.Send()
-		if err != nil {
-			utils.LogError(fmt.Errorf("%s: %s", errSendRequest, err))
-			continue
-		}
+	nvdReq.Prepare(nvdHistoryUrl, map[string]string{"startIndex": "0", "resultsPerPage": "1"})
 
-		body, err := readRespBody(resp)
-		if err != nil {
-			utils.LogError(fmt.Errorf("%s: %s", errReadBody, err))
-			continue
-		}
+	var nvdCvesHistoryResp *model.NvdCvesHistoryResp = new(model.NvdCvesHistoryResp)
+	doRequest(nvdCvesHistoryResp)
 
-		var nvdCvesHistoryResp *model.NvdCvesHistoryResp = new(model.NvdCvesHistoryResp)
-		err = parseRespBody(body, nvdCvesHistoryResp)
-		if err != nil {
-			utils.LogError(fmt.Errorf("%s: %s", errParseBody, err))
-			continue
-		}
-
-		totalResults = nvdCvesHistoryResp.TotalResults
-		break
-	}
-	return totalResults
+	return nvdCvesHistoryResp.TotalResults
 }

@@ -2,15 +2,16 @@ package utils
 
 import (
 	"fmt"
+	"log"
 	"time"
 )
 
 const (
-	INFO    = "INFO"
-	WARNING = "WARNING"
-	ERROR   = "ERROR"
-	DEBUG   = "DEBUG"
-	FATAL   = "FATAL"
+	infoHint    = "INFO"
+	warningHint = "WARNING"
+	errorHint   = "ERROR"
+	debugHint   = "DEBUG"
+	fatalHint   = "FATAL"
 )
 
 func currentHourMinuteSecond() string {
@@ -22,13 +23,17 @@ func currentHourMinuteSecond() string {
 }
 
 func LogInfo(msg string) {
-	fmt.Printf("[%s - %s] %s\n", INFO, currentHourMinuteSecond(), msg)
+	fmt.Printf("[%s - %s] %s\n", infoHint, currentHourMinuteSecond(), msg)
+}
+
+func LogDebug(msg string) {
+	fmt.Printf("[%s - %s] %s\n", debugHint, currentHourMinuteSecond(), msg)
 }
 
 func LogError(err error) {
-	fmt.Printf("[%s - %s] %s\n", ERROR, currentHourMinuteSecond(), err)
+	fmt.Printf("[%s - %s] %s\n", errorHint, currentHourMinuteSecond(), err)
 }
 
-// func LogFatal(msg string) {
-// 	log.Fatalf("[%s - %s] %s\n", FATAL, currentHourMinuteSecond(), msg)
-// }
+func LogFatal(msg error) {
+	log.Fatalf("[%s - %s] %s\n", fatalHint, currentHourMinuteSecond(), msg)
+}
