@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"log"
 	"time"
 )
 
@@ -26,6 +25,10 @@ func LogInfo(msg string) {
 	fmt.Printf("[%s - %s] %s\n", INFO, currentHourMinuteSecond(), msg)
 }
 
-func LogFatal(msg string) {
-	log.Fatalf("[%s - %s] %s\n", FATAL, currentHourMinuteSecond(), msg)
+func LogError(err error) {
+	fmt.Printf("[%s - %s] %s\n", ERROR, currentHourMinuteSecond(), err)
 }
+
+// func LogFatal(msg string) {
+// 	log.Fatalf("[%s - %s] %s\n", FATAL, currentHourMinuteSecond(), msg)
+// }

@@ -2,7 +2,7 @@ package model
 
 import (
 	"fmt"
-	"log"
+	// "log"
 	"net/http"
 	"os"
 	"time"
@@ -46,7 +46,7 @@ func (n *NvdRequest) Prepare(baseUrl string, params map[string]string) {
 	n.ParseParams(params)
 }
 
-func (n *NvdRequest) Send() *http.Response {
+func (n *NvdRequest) Send() (*http.Response, error) {
 	n.wait()
 
 	client := &http.Client{}
@@ -59,10 +59,9 @@ func (n *NvdRequest) Send() *http.Response {
 	n.SetReqTime(time.Now())
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error when sending request")
-		log.Fatal(err)
+		return nil, err
 	}
-	return resp
+	return resp, nil
 }
 
 func (n *NvdRequest) FullReqUrl() string {

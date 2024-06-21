@@ -4,29 +4,32 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 
 	model "cve-dict/model"
+	utils "cve-dict/utils"
 )
 
 const (
 	nvdUrl        string = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 	nvdHistoryUrl string = "https://services.nvd.nist.gov/rest/json/cvehistory/2.0"
+
+	errSendRequest string = "error when sending request"
+	errReadBody    string = "error when reading response body"
+	errParseBody   string = "error when parsing response body"
 )
 
 var (
 	nvdReq *model.NvdRequest = model.CreateNvdRequest()
 )
 
-func readRespBody(resp *http.Response) []byte {
+func readRespBody(resp *http.Response) ([]byte, error) {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error when reading response body")
-		log.Fatal(err)
+		return nil, err
 	}
 	defer resp.Body.Close()
-	return body
+	return body, nil
 }
 
 // parseRespBody parses the given JSON byte slice into the provided result pointer.
@@ -39,8 +42,8 @@ func readRespBody(resp *http.Response) []byte {
 // - error: an error if the JSON parsing fails. or nil if there is no error
 func parseRespBody[T model.NvdCvesResp | model.NvdCvesHistoryResp](body []byte, result *T) error {
 	if err := json.Unmarshal(body, &result); err != nil {
-		fmt.Printf("Error when parsing response body: %s\n", err)
 		if e, ok := err.(*json.SyntaxError); ok {
+			fmt.Printf("Body: %v\n", string(body))
 			fmt.Printf("Syntax error at byte offset %d\n", e.Offset)
 		}
 		return err
@@ -53,17 +56,26 @@ func FetchCves(params map[string]string) []model.Cve {
 	var cves []model.Cve = []model.Cve{}
 	for { // add loop to retry if error occurs
 		nvdReq.Prepare(nvdUrl, params)
-		resp := nvdReq.Send()
-
-		body := readRespBody(resp)
-		var bodyJson *model.NvdCvesResp = new(model.NvdCvesResp)
-		err := parseRespBody(body, bodyJson)
+		resp, err := nvdReq.Send()
 		if err != nil {
-			fmt.Printf("Try again: %s\n", nvdReq.FullReqUrl())
+			utils.LogError(fmt.Errorf("%s: %s", errSendRequest, err))
 			continue
 		}
 
-		cves = bodyJson.UnpackCve()
+		body, err := readRespBody(resp)
+		if err != nil {
+			utils.LogError(fmt.Errorf("%s: %s", errReadBody, err))
+			continue
+		}
+
+		var nvdCveResp *model.NvdCvesResp = new(model.NvdCvesResp)
+		err = parseRespBody(body, nvdCveResp)
+		if err != nil {
+			utils.LogError(fmt.Errorf("%s: %s", errParseBody, err))
+			continue
+		}
+
+		cves = nvdCveResp.UnpackCve()
 		break
 	}
 
@@ -72,19 +84,29 @@ func FetchCves(params map[string]string) []model.Cve {
 
 func FetchCvesHistory(params map[string]string) []model.CveChange {
 	var cveChanges []model.CveChange
+	for {
+		nvdReq.Prepare(nvdHistoryUrl, params)
+		resp, err := nvdReq.Send()
+		if err != nil {
+			utils.LogError(fmt.Errorf("%s: %s", errSendRequest, err))
+			continue
+		}
 
-	nvdReq.Prepare(nvdHistoryUrl, params)
-	resp := nvdReq.Send()
+		body, err := readRespBody(resp)
+		if err != nil {
+			utils.LogError(fmt.Errorf("%s: %s", errReadBody, err))
+			continue
+		}
 
-	body := readRespBody(resp)
-	var bodyJson *model.NvdCvesHistoryResp = new(model.NvdCvesHistoryResp)
-	err := parseRespBody(body, bodyJson)
-	if err != nil {
-		fmt.Printf("Error when parsing response body: %s\n", err)
-	}
+		var nvdCvesHistoryResp *model.NvdCvesHistoryResp = new(model.NvdCvesHistoryResp)
+		err = parseRespBody(body, nvdCvesHistoryResp)
+		if err != nil {
+			utils.LogError(fmt.Errorf("%s: %s", errParseBody, err))
+			continue
+		}
 
-	for _, c := range bodyJson.CveChanges {
-		cveChanges = append(cveChanges, c.Change)
+		cveChanges = nvdCvesHistoryResp.UnpackCveChange()
+		break
 	}
 	return cveChanges
 }
@@ -106,27 +128,59 @@ func InitNvdStatus() model.NvdStatus {
 }
 
 func initNvdCveStatus() int {
-	nvdReq.Prepare(nvdUrl, map[string]string{"startIndex": "0", "resultsPerPage": "1"})
-	resp := nvdReq.Send()
+	var totalResults int = 0
+	for {
+		nvdReq.Prepare(nvdUrl, map[string]string{"startIndex": "0", "resultsPerPage": "1"})
+		resp, err := nvdReq.Send()
+		if err != nil {
+			utils.LogError(fmt.Errorf("%s: %s", errSendRequest, err))
+			continue
+		}
 
-	body := readRespBody(resp)
-	var bodyJson *model.NvdCvesResp = new(model.NvdCvesResp)
-	err := parseRespBody(body, bodyJson)
-	if err != nil {
-		fmt.Printf("Error when parsing response body: %s\n", err)
+		body, err := readRespBody(resp)
+		if err != nil {
+			utils.LogError(fmt.Errorf("%s: %s", errReadBody, err))
+			continue
+		}
+
+		var nvdCveResp *model.NvdCvesResp = new(model.NvdCvesResp)
+		err = parseRespBody(body, nvdCveResp)
+		if err != nil {
+			utils.LogError(fmt.Errorf("%s: %s", errParseBody, err))
+			continue
+		}
+
+		totalResults = nvdCveResp.TotalResults
+		break
 	}
-	return bodyJson.TotalResults
+	return totalResults
 }
 
 func initNvdCveHistoryStatus() int {
-	nvdReq.Prepare(nvdHistoryUrl, map[string]string{"startIndex": "0", "resultsPerPage": "1"})
-	resp := nvdReq.Send()
+	var totalResults int = 0
+	for {
+		nvdReq.Prepare(nvdHistoryUrl, map[string]string{"startIndex": "0", "resultsPerPage": "1"})
+		resp, err := nvdReq.Send()
+		if err != nil {
+			utils.LogError(fmt.Errorf("%s: %s", errSendRequest, err))
+			continue
+		}
 
-	body := readRespBody(resp)
-	var bodyJson *model.NvdCvesHistoryResp = new(model.NvdCvesHistoryResp)
-	err := parseRespBody(body, bodyJson)
-	if err != nil {
-		fmt.Printf("Error when parsing response body: %s\n", err)
+		body, err := readRespBody(resp)
+		if err != nil {
+			utils.LogError(fmt.Errorf("%s: %s", errReadBody, err))
+			continue
+		}
+
+		var nvdCvesHistoryResp *model.NvdCvesHistoryResp = new(model.NvdCvesHistoryResp)
+		err = parseRespBody(body, nvdCvesHistoryResp)
+		if err != nil {
+			utils.LogError(fmt.Errorf("%s: %s", errParseBody, err))
+			continue
+		}
+
+		totalResults = nvdCvesHistoryResp.TotalResults
+		break
 	}
-	return bodyJson.TotalResults
+	return totalResults
 }

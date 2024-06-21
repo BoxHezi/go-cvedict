@@ -41,3 +41,11 @@ func (n NvdCvesResp) UnpackCve() []Cve {
 	}
 	return cves
 }
+
+func (n NvdCvesHistoryResp) UnpackCveChange() []CveChange {
+	var cveChanges []CveChange
+	for _, v := range n.CveChanges {
+		cveChanges = append(cveChanges, v.Change)
+	}
+	return cveChanges
+}
