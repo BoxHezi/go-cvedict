@@ -5,6 +5,8 @@ type RootFlag struct {
 	port       uint32
 	database   string
 	collection string
+
+	notifierUrl string
 }
 
 func (c *RootFlag) GetAddressP() *string {
@@ -21,4 +23,8 @@ func (c *RootFlag) GetDatabaseP() *string {
 
 func (c *RootFlag) GetCollectionP() *string {
 	return &c.collection
+}
+
+func (c *RootFlag) GetNotifierUrlP() *string {
+	return &c.notifierUrl
 }

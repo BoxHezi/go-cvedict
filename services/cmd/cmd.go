@@ -47,6 +47,9 @@ func initRootCmd() (*cobra.Command, *model.RootFlag) {
 	rootCmd.PersistentFlags().StringVarP(flags.GetDatabaseP(), "database", "d", "", "database name")
 	rootCmd.PersistentFlags().StringVarP(flags.GetCollectionP(), "collection", "c", "", "collection name")
 
+	// TODO: notifier - discord
+	rootCmd.PersistentFlags().StringVarP(flags.GetNotifierUrlP(), "notifer", "n", "", "notifier url")
+
 	rootCmd.MarkPersistentFlagRequired("database")
 	rootCmd.MarkPersistentFlagRequired("collection")
 

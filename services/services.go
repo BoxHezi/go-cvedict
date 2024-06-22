@@ -1,10 +1,12 @@
 package services
 
 import (
+	"fmt"
 	"time"
 
 	model "cve-dict/model"
 	db "cve-dict/services/database"
+	notifier "cve-dict/services/notifier"
 )
 
 func DoUpdateDatabase(dbConfig model.DbConfig, addedCves, modifiedCves, deletedCves []model.Cve) {
@@ -42,6 +44,10 @@ func DoUpdate(nvdStatus *model.NvdStatus) ([]model.Cve, []model.Cve) {
 
 	nvdStatus.SetCveCount(nvdStatus.CveCount + len(addedCves))
 	nvdStatus.SetCveHistoryCount(nvdStatus.CveHistoryCount + len(historyCves))
+
+	var n notifier.Notifier = notifier.Notifier{}
+	n.SetUrl("{DISCORD WEBHOOK URL HERE}")
+	n.Send(fmt.Sprintf("Added Cves: %d\nModified Cves: %d\n", len(addedCves), len(modifiedCves)))
 
 	return addedCves, modifiedCves
 }
