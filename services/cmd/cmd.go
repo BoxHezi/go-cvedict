@@ -25,15 +25,15 @@ func InitCmd() *cobra.Command {
 }
 
 func initRootCmd() (*cobra.Command, *model.RootFlag) {
-	var flags *model.RootFlag = new(model.RootFlag)
+	var rootFlags *model.RootFlag = new(model.RootFlag)
 	rootCmd := &cobra.Command{
 		Use:   "cvedict",
 		Short: "CVE dict",
 		Long:  "Local CVE Dictionary",
 		// Run:   func(cmd *cobra.Command, args []string) {},
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("Testing Database Connection... - mongodb://%s:%d\n", *flags.GetAddressP(), *flags.GetPortP())
-			client := db.Connect(db.ConstructUri(*flags.GetAddressP(), *flags.GetPortP()))
+			fmt.Printf("Testing Database Connection... - mongodb://%s:%d\n", *rootFlags.GetAddressP(), *rootFlags.GetPortP())
+			client := db.Connect(db.ConstructUri(*rootFlags.GetAddressP(), *rootFlags.GetPortP()))
 			defer db.Disconnect(client)
 
 			if err := db.TestConnection(client); err != nil {
@@ -42,16 +42,17 @@ func initRootCmd() (*cobra.Command, *model.RootFlag) {
 		},
 		TraverseChildren: true, // enabling duplicate flags for parent and child
 	}
-	rootCmd.PersistentFlags().StringVarP(flags.GetAddressP(), "address", "a", "127.0.0.1", "database address")
-	rootCmd.PersistentFlags().Uint32VarP(flags.GetPortP(), "port", "p", 27017, "database port")
-	rootCmd.PersistentFlags().StringVarP(flags.GetDatabaseP(), "database", "d", "", "database name")
-	rootCmd.PersistentFlags().StringVarP(flags.GetCollectionP(), "collection", "c", "", "collection name")
-	rootCmd.PersistentFlags().StringVarP(flags.GetNotifierUrlP(), "notifer", "n", "", "notifier url")
+	rootCmd.PersistentFlags().StringVarP(rootFlags.GetAddressP(), "address", "a", "127.0.0.1", "database address")
+	rootCmd.PersistentFlags().Uint32VarP(rootFlags.GetPortP(), "port", "p", 27017, "database port")
+	rootCmd.PersistentFlags().StringVarP(rootFlags.GetDatabaseP(), "database", "d", "nvd", "database name")
+	rootCmd.PersistentFlags().StringVarP(rootFlags.GetCollectionP(), "collection", "c", "cve", "collection name")
 
-	rootCmd.MarkPersistentFlagRequired("database")
-	rootCmd.MarkPersistentFlagRequired("collection")
+	rootCmd.PersistentFlags().StringVarP(rootFlags.GetNotifierUrlP(), "notifer", "n", "", "notifier url")
 
-	return rootCmd, flags
+	// rootCmd.MarkPersistentFlagRequired("database")
+	// rootCmd.MarkPersistentFlagRequired("collection")
+
+	return rootCmd, rootFlags
 }
 
 func initUpdateCmd(rootFlags *model.RootFlag) *cobra.Command {
@@ -94,8 +95,23 @@ func initFetchCmd(rootFlags *model.RootFlag) *cobra.Command {
 	return fetchCmd
 }
 
+func initSearchCmd(rootFlags *model.RootFlag) *cobra.Command {
+	searchCmd := &cobra.Command{
+		Use:   "search",
+		Short: "CVE dict",
+		Run: func(cmd *cobra.Command, args []string) {
+			// dbConfig := model.CreateDbConfig(*rootFlags)
+			// services.DoSearch(*dbConfig)
+		},
+	}
+
+	// searchCmd.Flags()
+
+	return searchCmd
+}
+
 func initServerCmd(rootFlags *model.RootFlag) *cobra.Command {
-	var port uint32 = 8080
+	var serverFlag *model.ServerFlag = new(model.ServerFlag)
 	serverCmd := &cobra.Command{
 		Use:   "server",
 		Short: "Start server",
@@ -103,11 +119,11 @@ func initServerCmd(rootFlags *model.RootFlag) *cobra.Command {
 			dbConfig := model.CreateDbConfig(*rootFlags)
 			notifier := model.CreateNotifier(*rootFlags)
 
-			server.Run(port, dbConfig, notifier)
+			server.Run(*serverFlag.GetPortP(), dbConfig, notifier)
 		},
 	}
 
-	serverCmd.Flags().Uint32VarP(&port, "port", "p", 8080, "server port")
+	serverCmd.Flags().Uint32VarP(serverFlag.GetPortP(), "port", "p", 8080, "server port")
 
 	return serverCmd
 }

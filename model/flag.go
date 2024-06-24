@@ -9,22 +9,48 @@ type RootFlag struct {
 	notifierUrl string
 }
 
-func (c *RootFlag) GetAddressP() *string {
-	return &c.address
+func (f *RootFlag) GetAddressP() *string {
+	return &f.address
 }
 
-func (c *RootFlag) GetPortP() *uint32 {
-	return &c.port
+func (f *RootFlag) GetPortP() *uint32 {
+	return &f.port
 }
 
-func (c *RootFlag) GetDatabaseP() *string {
-	return &c.database
+func (f *RootFlag) GetDatabaseP() *string {
+	return &f.database
 }
 
-func (c *RootFlag) GetCollectionP() *string {
-	return &c.collection
+func (f *RootFlag) GetCollectionP() *string {
+	return &f.collection
 }
 
-func (c *RootFlag) GetNotifierUrlP() *string {
-	return &c.notifierUrl
+func (f *RootFlag) GetNotifierUrlP() *string {
+	return &f.notifierUrl
+}
+
+type ServerFlag struct {
+	port uint32
+}
+
+func (f *ServerFlag) GetPortP() *uint32 {
+	return &f.port
+}
+
+type SearchFlag struct {
+	id   string
+	desc string
+	year string
+}
+
+func (f *SearchFlag) GetIdP() *string {
+	return &f.id
+}
+
+func (f *SearchFlag) GetDescP() *string {
+	return &f.desc
+}
+
+func (f *SearchFlag) GetYearP() *string {
+	return &f.year
 }
