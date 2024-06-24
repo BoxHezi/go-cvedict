@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	model "cve-dict/model"
+	model "cvedict/model"
 )
 
 func WriteToFile(cve model.Cve, filename string) {

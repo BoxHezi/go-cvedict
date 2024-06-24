@@ -1,7 +1,7 @@
 package main
 
 import (
-	cmd "cve-dict/services/cmd"
+	cmd "cvedict/services/cmd"
 )
 
 func main() {

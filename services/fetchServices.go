@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	model "cve-dict/model"
-	utils "cve-dict/utils"
+	model "cvedict/model"
+	utils "cvedict/utils"
 
-	nvd "cve-dict/services/nvd"
+	nvd "cvedict/services/nvd"
 )
 
 const incremental int = 2000

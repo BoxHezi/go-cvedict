@@ -6,8 +6,8 @@ import (
 	"io"
 	"net/http"
 
-	model "cve-dict/model"
-	utils "cve-dict/utils"
+	model "cvedict/model"
+	utils "cvedict/utils"
 )
 
 const (

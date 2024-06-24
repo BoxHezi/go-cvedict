@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	utils "cve-dict/utils"
+	utils "cvedict/utils"
 )
 
 /*

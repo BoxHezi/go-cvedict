@@ -1,4 +1,4 @@
-module cve-dict
+module cvedict
 
 go 1.21.10
 

@@ -6,9 +6,8 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 
-	model "cve-dict/model"
-
-	db "cve-dict/services/database"
+	model "cvedict/model"
+	db "cvedict/services/database"
 )
 
 func QueryCves(dbConfig model.DbConfig, query bson.D) []model.Cve {

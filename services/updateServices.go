@@ -5,8 +5,8 @@ import (
 	"slices"
 	"time"
 
-	model "cve-dict/model"
-	nvd "cve-dict/services/nvd"
+	model "cvedict/model"
+	nvd "cvedict/services/nvd"
 )
 
 func fetchAddedCves(startIndex int) []model.Cve {

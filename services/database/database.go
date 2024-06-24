@@ -10,8 +10,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	model "cve-dict/model"
-	utils "cve-dict/utils"
+	model "cvedict/model"
+	utils "cvedict/utils"
 )
 
 func ConstructUri(host string, port uint32) string {

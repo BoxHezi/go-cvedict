@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	model "cve-dict/model"
-	db "cve-dict/services/database"
-	notifier "cve-dict/services/notifier"
+	model "cvedict/model"
+	db "cvedict/services/database"
+	notifier "cvedict/services/notifier"
 )
 
 func DoUpdateDatabase(dbConfig model.DbConfig, addedCves, modifiedCves, deletedCves []model.Cve) {

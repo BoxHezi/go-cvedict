@@ -2,12 +2,11 @@ package model
 
 import (
 	"fmt"
-	// "log"
 	"net/http"
 	"os"
 	"time"
 
-	utils "cve-dict/utils"
+	utils "cvedict/utils"
 )
 
 // struct for nvd request

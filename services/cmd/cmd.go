@@ -6,11 +6,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	services "cve-dict/services"
-	db "cve-dict/services/database"
+	services "cvedict/services"
+	db "cvedict/services/database"
 
-	model "cve-dict/model"
-	server "cve-dict/server"
+	model "cvedict/model"
+	server "cvedict/server"
 )
 
 func InitCmd() *cobra.Command {
@@ -27,7 +27,7 @@ func InitCmd() *cobra.Command {
 func initRootCmd() (*cobra.Command, *model.RootFlag) {
 	var flags *model.RootFlag = new(model.RootFlag)
 	rootCmd := &cobra.Command{
-		Use:   "cve-dict",
+		Use:   "cvedict",
 		Short: "CVE dict",
 		Long:  "Local CVE Dictionary",
 		// Run:   func(cmd *cobra.Command, args []string) {},

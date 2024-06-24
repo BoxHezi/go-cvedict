@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	model "cve-dict/model"
+	model "cvedict/model"
 
-	services "cve-dict/services"
+	services "cvedict/services"
 )
 
 var dbConfig *model.DbConfig = new(model.DbConfig) // global database configuration
