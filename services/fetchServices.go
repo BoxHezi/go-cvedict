@@ -14,7 +14,7 @@ const incremental int = 2000
 
 // return addedCves, modifiedCves, deletedCves
 // modifiedCves and deletedCves are nil
-func fetchFromNvd(dbConfig model.DbConfig) ([]model.Cve, []model.Cve, []model.Cve) {
+func fetchFromNvd(dbConfig model.DbConfig) ([]model.Cve, []model.Cve) {
 	var index int = 0
 	var totalResults int = 0
 	var cves []model.Cve = []model.Cve{}
@@ -45,5 +45,5 @@ func fetchFromNvd(dbConfig model.DbConfig) ([]model.Cve, []model.Cve, []model.Cv
 	var nvdStatus model.NvdStatus = nvd.InitNvdStatus()
 	nvdStatus.SaveNvdStatus("./nvdStatus.json")
 
-	return cves, nil, nil
+	return cves, nil
 }

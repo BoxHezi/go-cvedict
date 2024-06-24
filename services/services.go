@@ -1,12 +1,10 @@
 package services
 
 import (
-	"fmt"
 	"time"
 
 	model "cvedict/model"
 	db "cvedict/services/database"
-	notifier "cvedict/services/notifier"
 )
 
 func DoUpdateDatabase(dbConfig model.DbConfig, addedCves, modifiedCves, deletedCves []model.Cve) {
@@ -26,10 +24,10 @@ func DoUpdateDatabase(dbConfig model.DbConfig, addedCves, modifiedCves, deletedC
 	}
 }
 
-// return: addedCves, modifiedCves, deletedCves
-func DoFetch(dbConfig model.DbConfig) ([]model.Cve, []model.Cve, []model.Cve) {
-	addedCves, modifiedCves, deletedCves := fetchFromNvd(dbConfig)
-	return addedCves, modifiedCves, deletedCves
+// return: addedCves, modifiedCves
+func DoFetch(dbConfig model.DbConfig) ([]model.Cve, []model.Cve) {
+	addedCves, modifiedCves := fetchFromNvd(dbConfig)
+	return addedCves, modifiedCves
 }
 
 // return: addedCves, modifiedCves
@@ -45,9 +43,9 @@ func DoUpdate(nvdStatus *model.NvdStatus) ([]model.Cve, []model.Cve) {
 	nvdStatus.SetCveCount(nvdStatus.CveCount + len(addedCves))
 	nvdStatus.SetCveHistoryCount(nvdStatus.CveHistoryCount + len(historyCves))
 
-	var n notifier.Notifier = notifier.Notifier{}
-	n.SetUrl("{DISCORD WEBHOOK URL HERE}")
-	n.Send(fmt.Sprintf("Added Cves: %d\nModified Cves: %d\n", len(addedCves), len(modifiedCves)))
+	// var n model.Notifier = model.Notifier{}
+	// n.SetUrl("{DISCORD WEBHOOK URL HERE}")
+	// n.Send(fmt.Sprintf("Added Cves: %d\nModified Cves: %d\n", len(addedCves), len(modifiedCves)))
 
 	return addedCves, modifiedCves
 }

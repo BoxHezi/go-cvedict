@@ -6,19 +6,16 @@ import (
 	"github.com/gin-gonic/gin"
 
 	model "cvedict/model"
-
 	services "cvedict/services"
+	utils "cvedict/utils"
 )
 
 var dbConfig *model.DbConfig = new(model.DbConfig) // global database configuration
+var notifier *model.Notifier = new(model.Notifier) // global notifier configuration
 
-func Run(port uint32, dbConf *model.DbConfig) {
+func Run(port uint32, dbConf *model.DbConfig, n *model.Notifier) {
 	dbConfig = dbConf
-	// fmt.Printf("%p\n", dbConfig)
-	// fmt.Println(dbConfig.DbHost)
-	// fmt.Println(dbConfig.DbPort)
-	// fmt.Println(dbConfig.Database)
-	// fmt.Println(dbConfig.Collection)
+	notifier = n
 
 	router := gin.Default()
 	router.GET("/cve/id/:cveid", handleCveid)      // exact match, i.e. CVE-2020-12345
@@ -55,16 +52,20 @@ func handleCveByYear(c *gin.Context) {
 func handleUpdate(c *gin.Context) {
 	nvdStatus := model.InitNvdStatus()
 
-	addedCves, modefiedCves := services.DoUpdate(nvdStatus)
-	go services.DoUpdateDatabase(*dbConfig, addedCves, modefiedCves, nil)
+	addedCves, modifiedCves := services.DoUpdate(nvdStatus)
+	go services.DoUpdateDatabase(*dbConfig, addedCves, modifiedCves, nil)
 	go nvdStatus.SaveNvdStatus("./nvdStatus.json")
 
 	c.JSON(200, gin.H{
 		"addedCvesCount":    len(addedCves),
 		"addedCves":         addedCves,
-		"modifiedCvesCount": len(modefiedCves),
-		"modifiedCves":      modefiedCves,
+		"modifiedCvesCount": len(modifiedCves),
+		"modifiedCves":      modifiedCves,
 	})
+
+	content := fmt.Sprintf("Update Operation Completed\n%s - Added: %d, Modified: %d", utils.CurrentDateTime(), len(addedCves), len(modifiedCves))
+	notifier.SetContent(content)
+	notifier.Send()
 }
 
 func handleSearch(c *gin.Context) {

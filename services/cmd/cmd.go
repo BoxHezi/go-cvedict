@@ -6,11 +6,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	services "cvedict/services"
-	db "cvedict/services/database"
-
 	model "cvedict/model"
 	server "cvedict/server"
+	services "cvedict/services"
+	db "cvedict/services/database"
+	utils "cvedict/utils"
 )
 
 func InitCmd() *cobra.Command {
@@ -46,8 +46,6 @@ func initRootCmd() (*cobra.Command, *model.RootFlag) {
 	rootCmd.PersistentFlags().Uint32VarP(flags.GetPortP(), "port", "p", 27017, "database port")
 	rootCmd.PersistentFlags().StringVarP(flags.GetDatabaseP(), "database", "d", "", "database name")
 	rootCmd.PersistentFlags().StringVarP(flags.GetCollectionP(), "collection", "c", "", "collection name")
-
-	// TODO: notifier - discord
 	rootCmd.PersistentFlags().StringVarP(flags.GetNotifierUrlP(), "notifer", "n", "", "notifier url")
 
 	rootCmd.MarkPersistentFlagRequired("database")
@@ -64,10 +62,15 @@ func initUpdateCmd(rootFlags *model.RootFlag) *cobra.Command {
 			nvdStatus := model.InitNvdStatus()
 			dbConfig := model.CreateDbConfig(*rootFlags)
 
-			addedCves, modefiedCves := services.DoUpdate(nvdStatus)
-			services.DoUpdateDatabase(*dbConfig, addedCves, modefiedCves, nil)
+			addedCves, modifiedCves := services.DoUpdate(nvdStatus)
+			services.DoUpdateDatabase(*dbConfig, addedCves, modifiedCves, nil)
 
-			nvdStatus.SaveNvdStatus("./nvdStatus.json")
+			go nvdStatus.SaveNvdStatus("./nvdStatus.json")
+
+			notifier := model.CreateNotifier(*rootFlags)
+			content := fmt.Sprintf("Update Operation Completed\n%s - Added: %d, Modified: %d", utils.CurrentDateTime(), len(addedCves), len(modifiedCves))
+			notifier.SetContent(content)
+			notifier.Send()
 		},
 	}
 	return updateCmd
@@ -79,7 +82,12 @@ func initFetchCmd(rootFlags *model.RootFlag) *cobra.Command {
 		Short: "CVE dict",
 		Run: func(cmd *cobra.Command, args []string) {
 			dbConfig := model.CreateDbConfig(*rootFlags)
-			services.DoFetch(*dbConfig)
+			addedCves, modifiedCves := services.DoFetch(*dbConfig)
+
+			notifier := model.CreateNotifier(*rootFlags)
+			content := fmt.Sprintf("Fetch Operation Completed\n%s - Added: %d, Modified: %d", utils.CurrentDateTime(), len(addedCves), len(modifiedCves))
+			notifier.SetContent(content)
+			notifier.Send()
 		},
 	}
 
@@ -93,7 +101,9 @@ func initServerCmd(rootFlags *model.RootFlag) *cobra.Command {
 		Short: "Start server",
 		Run: func(cmd *cobra.Command, args []string) {
 			dbConfig := model.CreateDbConfig(*rootFlags)
-			server.Run(port, dbConfig)
+			notifier := model.CreateNotifier(*rootFlags)
+
+			server.Run(port, dbConfig, notifier)
 		},
 	}
 

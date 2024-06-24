@@ -14,7 +14,7 @@ const (
 	fatalHint   = "FATAL"
 )
 
-func currentHourMinuteSecond() string {
+func CurrentDateTime() string {
 	dt := time.Now()
 
 	year, month, day := dt.Date()
@@ -23,17 +23,17 @@ func currentHourMinuteSecond() string {
 }
 
 func LogInfo(msg string) {
-	fmt.Printf("[%s - %s] %s\n", infoHint, currentHourMinuteSecond(), msg)
+	fmt.Printf("[%s - %s] %s\n", infoHint, CurrentDateTime(), msg)
 }
 
 func LogDebug(msg string) {
-	fmt.Printf("[%s - %s] %s\n", debugHint, currentHourMinuteSecond(), msg)
+	fmt.Printf("[%s - %s] %s\n", debugHint, CurrentDateTime(), msg)
 }
 
 func LogError(err error) {
-	fmt.Printf("[%s - %s] %s\n", errorHint, currentHourMinuteSecond(), err)
+	fmt.Printf("[%s - %s] %s\n", errorHint, CurrentDateTime(), err)
 }
 
 func LogFatal(msg error) {
-	log.Fatalf("[%s - %s] %s\n", fatalHint, currentHourMinuteSecond(), msg)
+	log.Fatalf("[%s - %s] %s\n", fatalHint, CurrentDateTime(), msg)
 }
