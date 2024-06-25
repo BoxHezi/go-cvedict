@@ -52,7 +52,7 @@ func (n *NvdStatus) LoadNvdStatus(filename string) {
 	n.SetCveHistoryCount(nvdStatus.CveHistoryCount)
 }
 
-func (n NvdStatus) SaveNvdStatus(filename string) {
+func (n *NvdStatus) SaveNvdStatus(filename string) {
 	file, err := os.Create(filename)
 	if err != nil {
 		log.Fatal(err)

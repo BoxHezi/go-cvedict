@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	YEAR_START_IDX = 4
-	YEAR_END_IDX   = 8
+	year_start_idx = 4
+	year_end_idx   = 8
 )
 
 type Cve struct {
@@ -148,7 +148,7 @@ func (c Cve) CveSummary() string {
 }
 
 func (c Cve) GetYear() string {
-	return c.Id[YEAR_START_IDX:YEAR_END_IDX]
+	return c.Id[year_start_idx:year_end_idx]
 }
 
 func (c Cve) GenerateFilename() string {

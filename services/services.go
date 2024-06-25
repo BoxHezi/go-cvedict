@@ -52,6 +52,7 @@ func DoSearch(dbConfig model.DbConfig, id, year, desc string) []model.Cve {
 	if id == "" && year == "" && desc == "" {
 		return nil
 	}
+
 	var query bson.D = bson.D{}
 	if id != "" {
 		query = append(query, prepareConditionFromId(id))
