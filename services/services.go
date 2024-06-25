@@ -5,6 +5,8 @@ import (
 
 	model "cvedict/model"
 	db "cvedict/services/database"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func DoUpdateDatabase(dbConfig model.DbConfig, addedCves, modifiedCves, deletedCves []model.Cve) {
@@ -43,9 +45,24 @@ func DoUpdate(nvdStatus *model.NvdStatus) ([]model.Cve, []model.Cve) {
 	nvdStatus.SetCveCount(nvdStatus.CveCount + len(addedCves))
 	nvdStatus.SetCveHistoryCount(nvdStatus.CveHistoryCount + len(historyCves))
 
-	// var n model.Notifier = model.Notifier{}
-	// n.SetUrl("{DISCORD WEBHOOK URL HERE}")
-	// n.Send(fmt.Sprintf("Added Cves: %d\nModified Cves: %d\n", len(addedCves), len(modifiedCves)))
-
 	return addedCves, modifiedCves
+}
+
+func DoSearch(dbConfig model.DbConfig, id, year, desc string) []model.Cve {
+	if id == "" && year == "" && desc == "" {
+		return nil
+	}
+	var query bson.D = bson.D{}
+	if id != "" {
+		query = append(query, prepareConditionFromId(id))
+	}
+	if year != "" {
+		query = append(query, prepareConditionFromYear(year))
+	}
+	if desc != "" {
+		query = append(query, prepareConditionFromDesc(desc))
+	}
+
+	cves := QueryCves(dbConfig, query)
+	return cves
 }

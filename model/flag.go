@@ -39,18 +39,18 @@ func (f *ServerFlag) GetPortP() *uint32 {
 
 type SearchFlag struct {
 	id   string
-	desc string
 	year string
+	desc string
 }
 
 func (f *SearchFlag) GetIdP() *string {
 	return &f.id
 }
 
-func (f *SearchFlag) GetDescP() *string {
-	return &f.desc
-}
-
 func (f *SearchFlag) GetYearP() *string {
 	return &f.year
+}
+
+func (f *SearchFlag) GetDescP() *string {
+	return &f.desc
 }
