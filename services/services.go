@@ -1,8 +1,6 @@
 package services
 
 import (
-	"time"
-
 	model "cvedict/model"
 	db "cvedict/services/database"
 
@@ -34,8 +32,7 @@ func DoFetch(dbConfig model.DbConfig) ([]model.Cve, []model.Cve) {
 
 // return: addedCves, modifiedCves
 func DoUpdate(nvdStatus *model.NvdStatus) ([]model.Cve, []model.Cve) {
-	addedCves := fetchAddedCves(nvdStatus.CveCount) // get added cves
-	time.Sleep(6 * time.Second)
+	addedCves := fetchAddedCves(nvdStatus.CveCount)            // get added cves
 	historyCves := fetchCvesHistory(nvdStatus.CveHistoryCount) // get cve history
 
 	// ignore added cves, remove duplicate cve id, get ID for modified CVEs

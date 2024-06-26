@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	"slices"
-	"time"
 
 	model "cvedict/model"
 	nvd "cvedict/services/nvd"
@@ -43,7 +42,6 @@ func fetchModifiedCves(modifiedIds []string) []model.Cve {
 	for _, id := range modifiedIds {
 		temp := nvd.FetchCves(map[string]string{"cveId": id})[0]
 		modifiedCves = append(modifiedCves, temp)
-		time.Sleep(6 * time.Second)
 	}
 	return modifiedCves
 }
