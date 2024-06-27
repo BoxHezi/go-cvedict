@@ -41,6 +41,12 @@ type SearchFlag struct {
 	id   string
 	year string
 	desc string
+	cvss float32 // filter cvss score greater than or equal to value passed in
+}
+
+// check if there is any value be set for seaarch flags
+func (f *SearchFlag) IsEmpty() bool {
+	return f.id == "" && f.year == "" && f.desc == ""
 }
 
 func (f *SearchFlag) GetIdP() *string {
@@ -53,4 +59,8 @@ func (f *SearchFlag) GetYearP() *string {
 
 func (f *SearchFlag) GetDescP() *string {
 	return &f.desc
+}
+
+func (f *SearchFlag) GetCvssP() *float32 {
+	return &f.cvss
 }

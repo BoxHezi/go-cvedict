@@ -103,8 +103,9 @@ func initSearchCmd(rootFlags *model.RootFlag) *cobra.Command {
 		Short: "CVE dict",
 		Run: func(cmd *cobra.Command, args []string) {
 			dbConfig := model.CreateDbConfig(*rootFlags)
-			cves := services.DoSearch(*dbConfig, *searchFlag.GetIdP(), *searchFlag.GetYearP(), *searchFlag.GetDescP())
+			cves := services.DoSearch(*dbConfig, *searchFlag)
 
+			// fmt.Printf("CVEs: %d\n", len(cves))
 			for _, c := range cves {
 				s, _ := json.MarshalIndent(c, "", "\t")
 				fmt.Println(string(s))
@@ -112,9 +113,11 @@ func initSearchCmd(rootFlags *model.RootFlag) *cobra.Command {
 		},
 	}
 
+	// no shorthand flags for search command
 	searchCmd.Flags().StringVar(searchFlag.GetIdP(), "id", "", "CVE ID")
 	searchCmd.Flags().StringVar(searchFlag.GetYearP(), "year", "", "CVE Year")
 	searchCmd.Flags().StringVar(searchFlag.GetDescP(), "desc", "", "CVE Description")
+	searchCmd.Flags().Float32Var(searchFlag.GetCvssP(), "cvss", 0, "CVE CVSS Score")
 
 	return searchCmd
 }

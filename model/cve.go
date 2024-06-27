@@ -162,6 +162,49 @@ func (c Cve) GenerateDirectoryName() string {
 	return fmt.Sprintf("%s%s", year, suffix)
 }
 
+func (c Cve) filterCvss31(cvss float32) bool {
+	if c.Metrics.CvssMetricV31 != nil {
+		for _, metrics := range c.Metrics.CvssMetricV31 {
+			if metrics.CvssData.BaseScore >= cvss {
+				// fmt.Println(c.Id, "CVSS31", metrics.CvssData.BaseScore)
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (c Cve) filterCvss30(cvss float32) bool {
+	if c.Metrics.CvssMetricV30 != nil {
+		for _, metrics := range c.Metrics.CvssMetricV30 {
+			if metrics.CvssData.BaseScore >= cvss {
+				// fmt.Println(c.Id, "CVSS30", metrics.CvssData.BaseScore)
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (c Cve) filterCvss2(cvss float32) bool {
+	if c.Metrics.CvssMetricV2 != nil {
+		for _, metrics := range c.Metrics.CvssMetricV2 {
+			if metrics.CvssData.BaseScore >= cvss {
+				// fmt.Println(c.Id, "CVSS2", metrics.CvssData.BaseScore)
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (c Cve) FilterCvss(cvss float32) bool {
+	if c.filterCvss31(cvss) || c.filterCvss30(cvss) || c.filterCvss2(cvss) {
+		return true
+	}
+	return false
+}
+
 // func (change CveChange) GetCveId() string {
 // 	return change.CveId
 // }

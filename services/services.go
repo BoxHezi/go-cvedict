@@ -1,10 +1,13 @@
 package services
 
 import (
-	model "cvedict/model"
-	db "cvedict/services/database"
+	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
+
+	model "cvedict/model"
+	db "cvedict/services/database"
+	utils "cvedict/utils"
 )
 
 func DoUpdateDatabase(dbConfig model.DbConfig, addedCves, modifiedCves, deletedCves []model.Cve) {
@@ -45,22 +48,36 @@ func DoUpdate(nvdStatus *model.NvdStatus) ([]model.Cve, []model.Cve) {
 	return addedCves, modifiedCves
 }
 
-func DoSearch(dbConfig model.DbConfig, id, year, desc string) []model.Cve {
-	if id == "" && year == "" && desc == "" {
-		return nil
+func DoSearch(dbConfig model.DbConfig, searchFlag model.SearchFlag) []model.Cve {
+	if searchFlag.IsEmpty() {
+		utils.LogError(fmt.Errorf("no id, year or description provided"))
+		return nil // return nil if there is no conditions passed in
 	}
 
 	var query bson.D = bson.D{}
-	if id != "" {
-		query = append(query, prepareConditionFromId(id))
+	if *searchFlag.GetIdP() != "" {
+		query = append(query, prepareConditionFromId(*searchFlag.GetIdP()))
 	}
-	if year != "" {
-		query = append(query, prepareConditionFromYear(year))
+	if *searchFlag.GetYearP() != "" {
+		query = append(query, prepareConditionFromYear(*searchFlag.GetYearP()))
 	}
-	if desc != "" {
-		query = append(query, prepareConditionFromDesc(desc))
+	if *searchFlag.GetDescP() != "" {
+		query = append(query, prepareConditionFromDesc(*searchFlag.GetDescP()))
+	}
+	cves := QueryCves(dbConfig, query)
+
+	if *searchFlag.GetCvssP() != 0 {
+		//? mongodb store floating point in binary format
+		//? comparison directly in mongodb can lead to unexpected results
+		//? cvss score passed in will be compared and filtered after docs retrieved from mongodb
+		resultCves := []model.Cve{}
+		for _, c := range cves {
+			if c.FilterCvss(*searchFlag.GetCvssP()) {
+				resultCves = append(resultCves, c)
+			}
+		}
+		return resultCves
 	}
 
-	cves := QueryCves(dbConfig, query)
 	return cves
 }
