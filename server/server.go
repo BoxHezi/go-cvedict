@@ -63,9 +63,11 @@ func handleUpdate(c *gin.Context) {
 		"modifiedCves":      modifiedCves,
 	})
 
-	content := fmt.Sprintf("Update Operation Completed\n%s - Added: %d, Modified: %d", utils.CurrentDateTime(), len(addedCves), len(modifiedCves))
-	notifier.SetContent(content)
-	notifier.Send()
+	if notifier != nil {
+		content := fmt.Sprintf("Update Operation Completed\n%s - Added: %d, Modified: %d", utils.CurrentDateTime(), len(addedCves), len(modifiedCves))
+		notifier.SetContent(content)
+		notifier.Send()
+	}
 }
 
 func handleSearch(c *gin.Context) {

@@ -3,8 +3,6 @@ package services
 import (
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
-
 	model "cvedict/model"
 	db "cvedict/services/database"
 	utils "cvedict/utils"
@@ -54,22 +52,13 @@ func DoSearch(dbConfig model.DbConfig, searchFlag model.SearchFlag) []model.Cve 
 		return nil // return nil if there is no conditions passed in
 	}
 
-	var query bson.D = bson.D{}
-	if *searchFlag.GetIdP() != "" {
-		query = append(query, prepareConditionFromId(*searchFlag.GetIdP()))
-	}
-	if *searchFlag.GetYearP() != "" {
-		query = append(query, prepareConditionFromYear(*searchFlag.GetYearP()))
-	}
-	if *searchFlag.GetDescP() != "" {
-		query = append(query, prepareConditionFromDesc(*searchFlag.GetDescP()))
-	}
+	query := prepareQuery(searchFlag)
 	cves := QueryCves(dbConfig, query)
 
 	if *searchFlag.GetCvssP() != 0 {
-		//? mongodb store floating point in binary format
-		//? comparison directly in mongodb can lead to unexpected results
-		//? cvss score passed in will be compared and filtered after docs retrieved from mongodb
+		// mongodb store floating point in binary format
+		// comparison directly in mongodb can lead to unexpected results
+		// cvss score passed in will be compared and filtered after docs retrieved from mongodb
 		resultCves := []model.Cve{}
 		for _, c := range cves {
 			if c.FilterCvss(*searchFlag.GetCvssP()) {

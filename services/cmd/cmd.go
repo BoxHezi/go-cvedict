@@ -65,9 +65,11 @@ func initFetchCmd(rootFlags *model.RootFlag) *cobra.Command {
 			addedCves, modifiedCves := services.DoFetch(*dbConfig)
 
 			notifier := model.CreateNotifier(*rootFlags)
-			content := fmt.Sprintf("Fetch Operation Completed\n%s - Added: %d, Modified: %d", utils.CurrentDateTime(), len(addedCves), len(modifiedCves))
-			notifier.SetContent(content)
-			notifier.Send()
+			if notifier != nil {
+				content := fmt.Sprintf("Fetch Operation Completed\n%s - Added: %d, Modified: %d", utils.CurrentDateTime(), len(addedCves), len(modifiedCves))
+				notifier.SetContent(content)
+				notifier.Send()
+			}
 		},
 	}
 
@@ -88,9 +90,11 @@ func initUpdateCmd(rootFlags *model.RootFlag) *cobra.Command {
 			go nvdStatus.SaveNvdStatus("./nvdStatus.json")
 
 			notifier := model.CreateNotifier(*rootFlags)
-			content := fmt.Sprintf("Update Operation Completed\n%s - Added: %d, Modified: %d", utils.CurrentDateTime(), len(addedCves), len(modifiedCves))
-			notifier.SetContent(content)
-			notifier.Send()
+			if notifier != nil {
+				content := fmt.Sprintf("Update Operation Completed\n%s - Added: %d, Modified: %d", utils.CurrentDateTime(), len(addedCves), len(modifiedCves))
+				notifier.SetContent(content)
+				notifier.Send()
+			}
 		},
 	}
 	return updateCmd
