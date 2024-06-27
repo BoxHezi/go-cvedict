@@ -26,7 +26,7 @@ func CreateNvdRequest() *NvdRequest {
 	return nvdReq
 }
 
-func (n *NvdRequest) ParseParams(params map[string]string) string {
+func (n *NvdRequest) parseParams(params map[string]string) string {
 	var p string // parameters string
 	var c int    // counter
 	for k, v := range params {
@@ -40,9 +40,14 @@ func (n *NvdRequest) ParseParams(params map[string]string) string {
 	return n.paramString
 }
 
+// Prepare sets the base URL and parses the parameters for the NvdRequest.
+//
+// Parameters:
+//   - baseUrl: the base URL for the request
+//   - params: a map of parameters for the request
 func (n *NvdRequest) Prepare(baseUrl string, params map[string]string) {
 	n.SetBaseUrl(baseUrl)
-	n.ParseParams(params)
+	n.parseParams(params)
 }
 
 func (n *NvdRequest) Send() (*http.Response, error) {
@@ -67,7 +72,14 @@ func (n *NvdRequest) FullReqUrl() string {
 	return fmt.Sprintf("%s?%s", n.baseUrl, n.paramString)
 }
 
-// NVD request rate limit: 6 seconds per request if without API key; 1 second per request if with API key
+// wait waits for a certain duration before allowing the next request to be sent.
+//
+// This function calculates the duration since the last request was sent and checks if it is less than the base wait time.
+// If it is, it sleeps for the remaining time.
+// The base wait time is 6 seconds for requests without an API key, and 1 second for requests with an API key.
+//
+// No parameters are required.
+// No return values.
 func (n *NvdRequest) wait() {
 	currentTime := time.Now()
 

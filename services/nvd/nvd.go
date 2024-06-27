@@ -52,7 +52,12 @@ func parseRespBody[T model.NvdCvesResp | model.NvdCvesHistoryResp](body []byte, 
 	return nil
 }
 
-func doRequest[T model.NvdCvesResp | model.NvdCvesHistoryResp](respHolder *T) {
+// doRequest sends a request and parses the response into the provided data structure.
+// type of data structure should be either model.NvdCvesResp or model.NvdCvesHistoryResp
+//
+// data *T: a pointer to the data structure where the response will be parsed into.
+// No return value.
+func doRequest[T model.NvdCvesResp | model.NvdCvesHistoryResp](data *T) {
 	var count int = 0
 	for {
 		if count >= 10 {
@@ -73,7 +78,7 @@ func doRequest[T model.NvdCvesResp | model.NvdCvesHistoryResp](respHolder *T) {
 			continue
 		}
 
-		err = parseRespBody(body, respHolder)
+		err = parseRespBody(body, data)
 		if err != nil {
 			utils.LogError(fmt.Errorf("%s: %s", errParseBodyHint, err))
 			count++
@@ -122,7 +127,6 @@ func initNvdCveStatus() int {
 
 	var nvdCvesResp *model.NvdCvesResp = new(model.NvdCvesResp)
 	doRequest(nvdCvesResp)
-
 	return nvdCvesResp.TotalResults
 }
 
@@ -131,6 +135,5 @@ func initNvdCveHistoryStatus() int {
 
 	var nvdCvesHistoryResp *model.NvdCvesHistoryResp = new(model.NvdCvesHistoryResp)
 	doRequest(nvdCvesHistoryResp)
-
 	return nvdCvesHistoryResp.TotalResults
 }

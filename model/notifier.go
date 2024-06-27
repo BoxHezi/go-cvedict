@@ -49,17 +49,20 @@ func (n *Notifier) Send() {
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
 		utils.LogError(err)
+		return
 	}
 
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", n.url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		utils.LogError(err)
+		return
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	_, err = client.Do(req)
 	if err != nil {
 		utils.LogError(err)
+		return
 	}
 }

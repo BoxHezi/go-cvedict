@@ -42,6 +42,10 @@ func (n NvdCvesResp) UnpackCve() []Cve {
 	return cves
 }
 
+// UnpackCveChange returns a slice of CveChange structs by unpacking the Change field from each nvdCveChange struct in the CveChanges field of the NvdCvesHistoryResp struct.
+//
+// No parameters.
+// Returns a slice of CveChange structs.
 func (n NvdCvesHistoryResp) UnpackCveChange() []CveChange {
 	var cveChanges []CveChange
 	for _, v := range n.CveChanges {

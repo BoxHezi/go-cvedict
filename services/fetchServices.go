@@ -12,8 +12,8 @@ import (
 
 const incremental int = 2000
 
-// return addedCves, modifiedCves, deletedCves
-// modifiedCves and deletedCves are nil
+// return addedCves, modifiedCves
+// modifiedCves is always nil
 func fetchFromNvd(dbConfig model.DbConfig) ([]model.Cve, []model.Cve) {
 	var index int = 0
 	var totalResults int = 0
