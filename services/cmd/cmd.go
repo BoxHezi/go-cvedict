@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 
@@ -110,10 +109,7 @@ func initSearchCmd(rootFlags *model.RootFlag) *cobra.Command {
 			cves := services.DoSearch(*dbConfig, *searchFlag)
 
 			// fmt.Printf("CVEs: %d\n", len(cves))
-			for _, c := range cves {
-				s, _ := json.MarshalIndent(c, "", "\t")
-				fmt.Println(string(s))
-			}
+			services.DoOutput(cves, *searchFlag.GetOutputPathP())
 		},
 	}
 
@@ -122,6 +118,7 @@ func initSearchCmd(rootFlags *model.RootFlag) *cobra.Command {
 	searchCmd.Flags().StringVar(searchFlag.GetYearP(), "year", "", "CVE Year")
 	searchCmd.Flags().StringVar(searchFlag.GetDescP(), "desc", "", "CVE Description")
 	searchCmd.Flags().Float32Var(searchFlag.GetCvssP(), "cvss", 0, "CVE CVSS Score")
+	searchCmd.Flags().StringVar(searchFlag.GetOutputPathP(), "output", "", "CVE output path")
 
 	return searchCmd
 }

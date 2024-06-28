@@ -42,6 +42,8 @@ type SearchFlag struct {
 	year string
 	desc string
 	cvss float32 // filter cvss score greater than or equal to value passed in
+
+	outputPath string // search results output path, default to stdout, filename will be {path/cveid.json}. E.g. ./cve-2020-12345.json
 }
 
 // check if there is any value be set for seaarch flags
@@ -63,4 +65,8 @@ func (f *SearchFlag) GetDescP() *string {
 
 func (f *SearchFlag) GetCvssP() *float32 {
 	return &f.cvss
+}
+
+func (f *SearchFlag) GetOutputPathP() *string {
+	return &f.outputPath
 }

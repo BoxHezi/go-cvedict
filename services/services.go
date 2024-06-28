@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"sync"
 
 	model "cvedict/model"
 	db "cvedict/services/database"
@@ -69,4 +70,14 @@ func DoSearch(dbConfig model.DbConfig, searchFlag model.SearchFlag) []model.Cve 
 	}
 
 	return cves
+}
+
+func DoOutput(cves []model.Cve, path string) {
+	// use WaitGroup to avoid finish before files are written
+	var wg sync.WaitGroup
+	for _, c := range cves {
+		wg.Add(1)
+		go writeToOutput(c, path, &wg)
+	}
+	wg.Wait()
 }
