@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/spf13/cobra"
 
@@ -80,13 +81,17 @@ func initUpdateCmd(rootFlags *model.RootFlag) *cobra.Command {
 		Use:   "update",
 		Short: "Update CVE dict",
 		Run: func(cmd *cobra.Command, args []string) {
+			var wg sync.WaitGroup
+
 			nvdStatus := model.InitNvdStatus()
 			dbConfig := model.CreateDbConfig(*rootFlags)
 
 			addedCves, modifiedCves := services.DoUpdate(nvdStatus)
-			services.DoUpdateDatabase(*dbConfig, addedCves, modifiedCves, nil)
 
-			go nvdStatus.SaveNvdStatus("./nvdStatus.json")
+			wg.Add(1)
+			go services.DoUpdateDatabase(*dbConfig, addedCves, modifiedCves, nil, &wg)
+			wg.Add(1)
+			go nvdStatus.SaveStatus("./nvdStatus.json", &wg)
 
 			notifier := model.CreateNotifier(*rootFlags)
 			if notifier != nil {
@@ -94,6 +99,8 @@ func initUpdateCmd(rootFlags *model.RootFlag) *cobra.Command {
 				notifier.SetContent(content)
 				notifier.Send()
 			}
+
+			wg.Wait()
 		},
 	}
 	return updateCmd

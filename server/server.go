@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 
@@ -50,11 +51,14 @@ func handleCveYear(c *gin.Context) {
 }
 
 func handleUpdate(c *gin.Context) {
-	nvdStatus := model.InitNvdStatus()
+	var wg sync.WaitGroup
 
+	nvdStatus := model.InitNvdStatus()
 	addedCves, modifiedCves := services.DoUpdate(nvdStatus)
-	go services.DoUpdateDatabase(*dbConfig, addedCves, modifiedCves, nil)
-	go nvdStatus.SaveNvdStatus("./nvdStatus.json")
+	wg.Add(1)
+	go services.DoUpdateDatabase(*dbConfig, addedCves, modifiedCves, nil, &wg)
+	wg.Add(1)
+	go nvdStatus.SaveStatus("./nvdStatus.json", &wg)
 
 	c.JSON(200, gin.H{
 		"addedCvesCount":    len(addedCves),
@@ -68,6 +72,8 @@ func handleUpdate(c *gin.Context) {
 		notifier.SetContent(content)
 		notifier.Send()
 	}
+
+	wg.Wait()
 }
 
 func handleSearch(c *gin.Context) {

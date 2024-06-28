@@ -9,7 +9,9 @@ import (
 	utils "cvedict/utils"
 )
 
-func DoUpdateDatabase(dbConfig model.DbConfig, addedCves, modifiedCves, deletedCves []model.Cve) {
+func DoUpdateDatabase(dbConfig model.DbConfig, addedCves, modifiedCves, deletedCves []model.Cve, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	client := db.Connect(db.ConstructUri(dbConfig.DbHost, dbConfig.DbPort))
 	defer db.Disconnect(client)
 
