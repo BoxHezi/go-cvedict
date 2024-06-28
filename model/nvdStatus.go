@@ -54,7 +54,10 @@ func (n *NvdStatus) LoadStatus(filename string) {
 }
 
 func (n *NvdStatus) SaveStatus(filename string, wg *sync.WaitGroup) {
-	defer wg.Done()
+	if wg != nil {
+		defer wg.Done()
+	}
+
 	file, err := os.Create(filename)
 	if err != nil {
 		log.Fatal(err)
