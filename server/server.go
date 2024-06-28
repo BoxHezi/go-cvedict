@@ -18,16 +18,16 @@ func Run(port uint32, dbConf *model.DbConfig, n *model.Notifier) {
 	notifier = n
 
 	router := gin.Default()
-	router.GET("/cve/id/:cveid", handleCveid)      // exact match, i.e. CVE-2020-12345
-	router.GET("/cve/year/:year", handleCveByYear) // equipvalent to /search?id=CVE-{year}
+	router.GET("/cve/id/:cveid", handleCveId)    // exact match, i.e. CVE-2020-12345
+	router.GET("/cve/year/:year", handleCveYear) // equipvalent to /search?id=CVE-{year}
 	router.GET("/update", handleUpdate)
 
-	router.GET("/search", handleSearch) // when query string is provided
+	router.GET("/search", handleSearch) // when query string is provided, case-insensitive
 
 	router.Run(fmt.Sprintf(":%d", port))
 }
 
-func handleCveid(c *gin.Context) {
+func handleCveId(c *gin.Context) {
 	cveid := c.Param("cveid")
 	query := unpackUriVariable(map[string]string{"id": cveid}, true)
 	cves := services.QueryCves(*dbConfig, query)
@@ -38,7 +38,7 @@ func handleCveid(c *gin.Context) {
 	})
 }
 
-func handleCveByYear(c *gin.Context) {
+func handleCveYear(c *gin.Context) {
 	year := c.Param("year")
 	query := unpackUriVariable(map[string]string{"id": fmt.Sprintf("CVE-%s-", year)}, false)
 	cves := services.QueryCves(*dbConfig, query)
