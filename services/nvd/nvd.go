@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	model "cvedict/model"
 	utils "cvedict/utils"
@@ -65,29 +66,35 @@ func doRequest[T model.NvdCvesResp | model.NvdCvesHistoryResp](data *T) {
 		}
 
 		resp, err := nvdReq.Send()
-		if err != nil {
-			utils.LogError(fmt.Errorf("%s: %s", errSendRequestHint, err))
-			count++
+		if !handleError(errSendRequestHint, err, &count) {
 			continue
 		}
 
 		body, err := readRespBody(resp)
-		if err != nil {
-			utils.LogError(fmt.Errorf("%s: %s", errReadBodyHint, err))
-			count++
+		if !handleError(errReadBodyHint, err, &count) {
 			continue
 		}
 
 		err = parseRespBody(body, data)
-		if err != nil {
-			utils.LogError(fmt.Errorf("%s: %s", errParseBodyHint, err))
-			count++
+		if !handleError(errParseBodyHint, err, &count) {
 			continue
 		}
 
 		// utils.LogDebug(fmt.Sprintf("\n%+v\n", container))
 		return
 	}
+}
+
+// return true if no error; false if there is an error
+func handleError(hint string, err error, count *int) bool {
+	if err != nil {
+		utils.LogError(fmt.Errorf("%s: %s", hint, err))
+		*count++
+		time.Sleep(6 * time.Second)
+		return false
+	}
+
+	return true
 }
 
 func FetchCves(params map[string]string) []model.Cve {
