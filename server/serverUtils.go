@@ -15,7 +15,9 @@ import (
 func unpackQueryString(params map[string][]string) bson.D {
 	var query bson.D
 	for k, v := range params {
-		query = append(query, bson.E{Key: k, Value: primitive.Regex{Pattern: v[0], Options: "i"}})
+		for _, value := range v {
+			query = append(query, bson.E{Key: k, Value: primitive.Regex{Pattern: value, Options: "i"}})
+		}
 	}
 	return query
 }
@@ -23,7 +25,7 @@ func unpackQueryString(params map[string][]string) bson.D {
 // unpackUriVariable generates a BSON query for MongoDB based on a map of key-value pairs.
 //
 // Parameters:
-// - kv: a map of key-value pairs where the keys represent the field names and the values represent the field values.
+// - params: a map of key-value pairs where the keys represent the field names and the values represent the field values.
 // - exactMatch: a boolean indicating whether the query should match the field values exactly or use a regular expression.
 //
 // Returns:

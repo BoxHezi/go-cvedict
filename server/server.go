@@ -54,7 +54,6 @@ func handleUpdate(c *gin.Context) {
 	addedCves, modifiedCves := services.DoUpdate(nvdStatus)
 
 	go services.DoUpdateDatabase(*dbConfig, addedCves, modifiedCves, nil, nil)
-
 	go nvdStatus.SaveStatus("./nvdStatus.json", nil)
 
 	c.JSON(200, gin.H{
