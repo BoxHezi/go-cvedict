@@ -16,6 +16,7 @@ type Cve struct {
 	Published        string          `json:"published"`
 	LastModified     string          `json:"lastModified"`
 	Status           string          `json:"vulnStatus"`
+	CveTags          []string        `json:"cveTags"`
 	Descriptions     []desc          `json:"descriptions"`
 	Metrics          metrics         `json:"metrics"`
 	Weaknesses       []weakness      `json:"weaknesses,omitempty"`
@@ -29,9 +30,16 @@ type desc struct {
 }
 
 type metrics struct {
+	CvssMetricV40 []cvss40 `json:"cvssMetricV40,omitempty"`
 	CvssMetricV31 []cvss31 `json:"cvssMetricV31,omitempty"`
 	CvssMetricV30 []cvss30 `json:"cvssMetricV30,omitempty"`
 	CvssMetricV2  []cvss2  `json:"cvssMetricV2,omitempty"`
+}
+
+type cvss40 struct {
+	Source   string   `json:"source"`
+	Type     string   `json:"type"`
+	CvssData cvssdata `json:"cvssData"`
 }
 
 type cvss31 struct {
@@ -65,19 +73,50 @@ type cvss2 struct {
 }
 
 type cvssdata struct {
-	Version               string  `json:"version"`
-	VectorString          string  `json:"vectorString"`
-	ConfidentialityImpact string  `json:"confidentialityImpact"`
-	IntegrityImpact       string  `json:"integrityImpact"`
-	AvailabilityImpact    string  `json:"availabilityImpact"`
-	BaseScore             float32 `json:"baseScore"`
-	// CVSS3.0 & CVSS3.1
+	Version      string  `json:"version"`
+	VectorString string  `json:"vectorString"`
+	BaseScore    float32 `json:"baseScore"`
+	// CVSS4.0
+	AttackRequirements                      string `json:"attackrequirements"`
+	VulnerableSystemConfidentiality         string `json:"vulnerableSystemConfidentiality"`
+	VulnerableSystemIntegrity               string `json:"vulnerableSystemIntegrity"`
+	VulnerableSystemAvailability            string `json:"vulnerableSystemAvailability"`
+	SubsequentSystemConfidentiality         string `json:"subsequentSystemConfidentiality"`
+	SubsequentSystemIntegrity               string `json:"subsequentSystemIntegrity"`
+	SubsequentSystemAvailability            string `json:"subsequentSystemAvailability"`
+	ExploitMaturity                         string `json:"exploitMaturity"`
+	ConfidentialityRequirements             string `json:"confidentialityRequirements"`
+	IntegrityRequirements                   string `json:"integrityRequirements"`
+	AvailabilityRequirements                string `json:"availabilityRequirements"`
+	ModifiedAttackVector                    string `json:"modifiedAttackVector"`
+	ModifiedAttackComplexity                string `json:"modifiedAttackComplexity"`
+	ModifiedAttackRequirements              string `json:"modifiedAttackRequirements"`
+	ModifiedPrivilegesRequired              string `json:"modifiedPrivilegesRequired"`
+	ModifiedUserInteraction                 string `json:"modifiedUserInteraction"`
+	ModifiedVulnerableSystemConfidentiality string `json:"modifiedVulnerableSystemConfidentiality"`
+	ModifiedVulnerableSystemIntegrity       string `json:"modifiedVulnerableSystemIntegrity"`
+	ModifiedVulnerableSystemAvailability    string `json:"modifiedVulnerableSystemAvailability"`
+	ModifiedSubsequentSystemConfidentiality string `json:"modifiedSubsequentSystemConfidentiality"`
+	ModifiedSubsequentSystemIntegrity       string `json:"modifiedSubsequentSystemIntegrity"`
+	ModifiedSubsequentSystemAvailability    string `json:"modifiedSubsequentSystemAvailability"`
+	Safety                                  string `json:"safety"`
+	Automatable                             string `json:"automatable"`
+	Recovery                                string `json:"recovery"`
+	ValueDensity                            string `json:"valueDensity"`
+	VulnerabilityResponseEffort             string `json:"vulnerabilityResponseEffort"`
+	ProviderUrgency                         string `json:"providerUrgency"`
+	// CVSS4.0 & CVSS3.0 & CVSS3.1
 	AttackVector       string `json:"attackVector"`
 	AttackComplexity   string `json:"attackComplexity"`
 	PrivilegesRequired string `json:"privilegesRequired"`
 	UserInteraction    string `json:"userInteraction"`
-	Scope              string `json:"scope"`
 	BaseSeverity       string `json:"baseSeverity"`
+	// CVSS3.0 & CVSS3.1
+	Scope string `json:"scope"`
+	// CVSS3.0 & CVSS3.1 & CVSS2.0
+	ConfidentialityImpact string `json:"confidentialityImpact"`
+	IntegrityImpact       string `json:"integrityImpact"`
+	AvailabilityImpact    string `json:"availabilityImpact"`
 	// CVSS2.0
 	AccessVector     string `json:"accessVector"`
 	AccessComplexity string `json:"accessComplexity"`
