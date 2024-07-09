@@ -25,8 +25,8 @@ type Cve struct {
 }
 
 type cveTag struct {
-	SourceIndentifier string   `json:"sourceIndentifier"`
-	Tags              []string `json:"tags"`
+	SourceIdentifier string   `json:"sourceIdentifier"`
+	Tags             []string `json:"tags"`
 }
 
 type desc struct {
