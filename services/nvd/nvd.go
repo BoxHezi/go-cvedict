@@ -80,7 +80,6 @@ func doRequest[T model.NvdCvesResp | model.NvdCvesHistoryResp](data *T) {
 			continue
 		}
 
-		// utils.LogDebug(fmt.Sprintf("\n%+v\n", container))
 		return
 	}
 }

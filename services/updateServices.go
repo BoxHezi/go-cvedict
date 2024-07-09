@@ -9,13 +9,35 @@ import (
 )
 
 func fetchAddedCves(startIndex int) []model.Cve {
-	addedCves := nvd.FetchCves(map[string]string{"startIndex": fmt.Sprintf("%d", startIndex)})
+	var addedCves []model.Cve = []model.Cve{}
+
+	for {
+		tempCves := nvd.FetchCves(map[string]string{"startIndex": fmt.Sprintf("%d", startIndex)})
+		addedCves = append(addedCves, tempCves...)
+		startIndex += len(tempCves)
+
+		if len(tempCves) < 2000 {
+			break
+		}
+	}
+
 	fmt.Printf("%d new CVEs\n", len(addedCves))
 	return addedCves
 }
 
 func fetchCvesHistory(startIndex int) []model.CveChange {
-	historyCves := nvd.FetchCvesHistory(map[string]string{"startIndex": fmt.Sprintf("%d", startIndex)})
+	var historyCves []model.CveChange = []model.CveChange{}
+
+	for {
+		tempHistoryCves := nvd.FetchCvesHistory(map[string]string{"startIndex": fmt.Sprintf("%d", startIndex)})
+		historyCves = append(historyCves, tempHistoryCves...)
+		startIndex += len(tempHistoryCves)
+
+		if len(tempHistoryCves) < 5000 {
+			break
+		}
+	}
+
 	fmt.Printf("%d CVE history\n", len(historyCves))
 	return historyCves
 }

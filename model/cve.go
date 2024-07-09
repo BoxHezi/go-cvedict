@@ -16,12 +16,17 @@ type Cve struct {
 	Published        string          `json:"published"`
 	LastModified     string          `json:"lastModified"`
 	Status           string          `json:"vulnStatus"`
-	CveTags          []string        `json:"cveTags"`
+	CveTags          []cveTag        `json:"cveTags"`
 	Descriptions     []desc          `json:"descriptions"`
 	Metrics          metrics         `json:"metrics"`
 	Weaknesses       []weakness      `json:"weaknesses,omitempty"`
 	Configurations   []configuration `json:"configurations,omitempty"`
 	References       []reference     `json:"references"`
+}
+
+type cveTag struct {
+	SourceIndentifier string   `json:"sourceIndentifier"`
+	Tags              []string `json:"tags"`
 }
 
 type desc struct {
@@ -77,50 +82,50 @@ type cvssdata struct {
 	VectorString string  `json:"vectorString"`
 	BaseScore    float32 `json:"baseScore"`
 	// CVSS4.0
-	AttackRequirements                      string `json:"attackrequirements"`
-	VulnerableSystemConfidentiality         string `json:"vulnerableSystemConfidentiality"`
-	VulnerableSystemIntegrity               string `json:"vulnerableSystemIntegrity"`
-	VulnerableSystemAvailability            string `json:"vulnerableSystemAvailability"`
-	SubsequentSystemConfidentiality         string `json:"subsequentSystemConfidentiality"`
-	SubsequentSystemIntegrity               string `json:"subsequentSystemIntegrity"`
-	SubsequentSystemAvailability            string `json:"subsequentSystemAvailability"`
-	ExploitMaturity                         string `json:"exploitMaturity"`
-	ConfidentialityRequirements             string `json:"confidentialityRequirements"`
-	IntegrityRequirements                   string `json:"integrityRequirements"`
-	AvailabilityRequirements                string `json:"availabilityRequirements"`
-	ModifiedAttackVector                    string `json:"modifiedAttackVector"`
-	ModifiedAttackComplexity                string `json:"modifiedAttackComplexity"`
-	ModifiedAttackRequirements              string `json:"modifiedAttackRequirements"`
-	ModifiedPrivilegesRequired              string `json:"modifiedPrivilegesRequired"`
-	ModifiedUserInteraction                 string `json:"modifiedUserInteraction"`
-	ModifiedVulnerableSystemConfidentiality string `json:"modifiedVulnerableSystemConfidentiality"`
-	ModifiedVulnerableSystemIntegrity       string `json:"modifiedVulnerableSystemIntegrity"`
-	ModifiedVulnerableSystemAvailability    string `json:"modifiedVulnerableSystemAvailability"`
-	ModifiedSubsequentSystemConfidentiality string `json:"modifiedSubsequentSystemConfidentiality"`
-	ModifiedSubsequentSystemIntegrity       string `json:"modifiedSubsequentSystemIntegrity"`
-	ModifiedSubsequentSystemAvailability    string `json:"modifiedSubsequentSystemAvailability"`
-	Safety                                  string `json:"safety"`
-	Automatable                             string `json:"automatable"`
-	Recovery                                string `json:"recovery"`
-	ValueDensity                            string `json:"valueDensity"`
-	VulnerabilityResponseEffort             string `json:"vulnerabilityResponseEffort"`
-	ProviderUrgency                         string `json:"providerUrgency"`
+	AttackRequirements                      string `json:"attackrequirements,omitempty"`
+	VulnerableSystemConfidentiality         string `json:"vulnerableSystemConfidentiality,omitempty"`
+	VulnerableSystemIntegrity               string `json:"vulnerableSystemIntegrity,omitempty"`
+	VulnerableSystemAvailability            string `json:"vulnerableSystemAvailability,omitempty"`
+	SubsequentSystemConfidentiality         string `json:"subsequentSystemConfidentiality,omitempty"`
+	SubsequentSystemIntegrity               string `json:"subsequentSystemIntegrity,omitempty"`
+	SubsequentSystemAvailability            string `json:"subsequentSystemAvailability,omitempty"`
+	ExploitMaturity                         string `json:"exploitMaturity,omitempty"`
+	ConfidentialityRequirements             string `json:"confidentialityRequirements,omitempty"`
+	IntegrityRequirements                   string `json:"integrityRequirements,omitempty"`
+	AvailabilityRequirements                string `json:"availabilityRequirements,omitempty"`
+	ModifiedAttackVector                    string `json:"modifiedAttackVector,omitempty"`
+	ModifiedAttackComplexity                string `json:"modifiedAttackComplexity,omitempty"`
+	ModifiedAttackRequirements              string `json:"modifiedAttackRequirements,omitempty"`
+	ModifiedPrivilegesRequired              string `json:"modifiedPrivilegesRequired,omitempty"`
+	ModifiedUserInteraction                 string `json:"modifiedUserInteraction,omitempty"`
+	ModifiedVulnerableSystemConfidentiality string `json:"modifiedVulnerableSystemConfidentiality,omitempty"`
+	ModifiedVulnerableSystemIntegrity       string `json:"modifiedVulnerableSystemIntegrity,omitempty"`
+	ModifiedVulnerableSystemAvailability    string `json:"modifiedVulnerableSystemAvailability,omitempty"`
+	ModifiedSubsequentSystemConfidentiality string `json:"modifiedSubsequentSystemConfidentiality,omitempty"`
+	ModifiedSubsequentSystemIntegrity       string `json:"modifiedSubsequentSystemIntegrity,omitempty"`
+	ModifiedSubsequentSystemAvailability    string `json:"modifiedSubsequentSystemAvailability,omitempty"`
+	Safety                                  string `json:"safety,omitempty"`
+	Automatable                             string `json:"automatable,omitempty"`
+	Recovery                                string `json:"recovery,omitempty"`
+	ValueDensity                            string `json:"valueDensity,omitempty"`
+	VulnerabilityResponseEffort             string `json:"vulnerabilityResponseEffort,omitempty"`
+	ProviderUrgency                         string `json:"providerUrgency,omitempty"`
 	// CVSS4.0 & CVSS3.0 & CVSS3.1
-	AttackVector       string `json:"attackVector"`
-	AttackComplexity   string `json:"attackComplexity"`
-	PrivilegesRequired string `json:"privilegesRequired"`
-	UserInteraction    string `json:"userInteraction"`
-	BaseSeverity       string `json:"baseSeverity"`
+	AttackVector       string `json:"attackVector,omitempty"`
+	AttackComplexity   string `json:"attackComplexity,omitempty"`
+	PrivilegesRequired string `json:"privilegesRequired,omitempty"`
+	UserInteraction    string `json:"userInteraction,omitempty"`
+	BaseSeverity       string `json:"baseSeverity,omitempty"`
 	// CVSS3.0 & CVSS3.1
-	Scope string `json:"scope"`
+	Scope string `json:"scope,omitempty"`
 	// CVSS3.0 & CVSS3.1 & CVSS2.0
-	ConfidentialityImpact string `json:"confidentialityImpact"`
-	IntegrityImpact       string `json:"integrityImpact"`
-	AvailabilityImpact    string `json:"availabilityImpact"`
+	ConfidentialityImpact string `json:"confidentialityImpact,omitempty"`
+	IntegrityImpact       string `json:"integrityImpact,omitempty"`
+	AvailabilityImpact    string `json:"availabilityImpact,omitempty"`
 	// CVSS2.0
-	AccessVector     string `json:"accessVector"`
-	AccessComplexity string `json:"accessComplexity"`
-	Authentication   string `json:"authentication"`
+	AccessVector     string `json:"accessVector,omitempty"`
+	AccessComplexity string `json:"accessComplexity,omitempty"`
+	Authentication   string `json:"authentication,omitempty"`
 }
 
 type weakness struct {
@@ -201,6 +206,18 @@ func (c Cve) GenerateDirectoryName() string {
 	return fmt.Sprintf("%s%s", year, suffix)
 }
 
+func (c Cve) filterCvss40(cvss float32) bool {
+	if c.Metrics.CvssMetricV40 != nil {
+		for _, metrics := range c.Metrics.CvssMetricV40 {
+			if metrics.CvssData.BaseScore >= cvss {
+				// fmt.Println(c.Id, "CVSS40", metrics.CvssData.BaseScore)
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (c Cve) filterCvss31(cvss float32) bool {
 	if c.Metrics.CvssMetricV31 != nil {
 		for _, metrics := range c.Metrics.CvssMetricV31 {
@@ -238,7 +255,7 @@ func (c Cve) filterCvss2(cvss float32) bool {
 }
 
 func (c Cve) FilterCvss(cvss float32) bool {
-	if c.filterCvss31(cvss) || c.filterCvss30(cvss) || c.filterCvss2(cvss) {
+	if c.filterCvss40(cvss) || c.filterCvss31(cvss) || c.filterCvss30(cvss) || c.filterCvss2(cvss) {
 		return true
 	}
 	return false
