@@ -15,7 +15,7 @@ const incremental int = 2000
 
 // return addedCves, modifiedCves
 // modifiedCves is always nil
-func fetchFromNvd(dbConfig model.DbConfig) ([]model.Cve, []model.Cve) {
+func fetchFromNvd(sc ServicesConfig) ([]model.Cve, []model.Cve) {
 	var wg sync.WaitGroup
 
 	var index int = 0
@@ -27,14 +27,14 @@ func fetchFromNvd(dbConfig model.DbConfig) ([]model.Cve, []model.Cve) {
 		tempCves := nvd.FetchCves(map[string]string{"startIndex": fmt.Sprintf("%d", index)})
 		if len(tempCves) == 0 { // finished fetching
 			wg.Add(1)
-			go DoUpdateDatabase(dbConfig, cves, nil, nil, &wg)
+			go DoUpdateDatabase(sc, cves, nil, nil, &wg)
 			break
 		}
 
 		cves = append(cves, tempCves...)
 		if len(cves)%20000 == 0 {
 			wg.Add(1)
-			go DoUpdateDatabase(dbConfig, cves, nil, nil, &wg)
+			go DoUpdateDatabase(sc, cves, nil, nil, &wg)
 			cves = nil
 		}
 
@@ -44,7 +44,10 @@ func fetchFromNvd(dbConfig model.DbConfig) ([]model.Cve, []model.Cve) {
 	utils.LogInfo("Done Fetching CVEs from NVD...")
 	end := time.Now()
 	totalDuration := end.Sub(start)
-	fmt.Printf("Fetched %d CVEs in %v\n", totalResults, totalDuration)
+	utils.LogInfo(fmt.Sprintf("Fetched %d CVEs in %v\n", totalResults, totalDuration))
+
+	content := fmt.Sprintf("Done Fetching CVEs from NVD.\nFetched %d CVEs in %v\n", totalResults, totalDuration)
+	DoSendNotification(sc, content)
 
 	// init status for nvd query
 	var nvdStatus model.NvdStatus = nvd.InitNvdStatus()

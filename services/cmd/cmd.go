@@ -11,7 +11,6 @@ import (
 	server "cvedict/server"
 	services "cvedict/services"
 	db "cvedict/services/database"
-	utils "cvedict/utils"
 )
 
 func InitCmd() *cobra.Command {
@@ -62,14 +61,9 @@ func initFetchCmd(rootFlags *model.RootFlag) *cobra.Command {
 		Short: "CVE dict",
 		Run: func(cmd *cobra.Command, args []string) {
 			dbConfig := model.CreateDbConfig(*rootFlags)
-			addedCves, modifiedCves := services.DoFetch(*dbConfig)
 
-			notifier := model.CreateNotifier(*rootFlags)
-			if notifier != nil {
-				content := fmt.Sprintf("Fetch Operation Completed\n%s - Added: %d, Modified: %d", utils.CurrentDateTime(), len(addedCves), len(modifiedCves))
-				notifier.SetContent(content)
-				notifier.Send()
-			}
+			sc := services.CreateServicesController(dbConfig, model.InitNvdStatus(), nil, model.CreateNotifier(*rootFlags))
+			services.DoFetch(*sc)
 		},
 	}
 
@@ -80,25 +74,15 @@ func initUpdateCmd(rootFlags *model.RootFlag) *cobra.Command {
 	updateCmd := &cobra.Command{
 		Use:   "update",
 		Short: "Update CVE dict",
+
 		Run: func(cmd *cobra.Command, args []string) {
 			var wg sync.WaitGroup
 
-			nvdStatus := model.InitNvdStatus()
-			dbConfig := model.CreateDbConfig(*rootFlags)
-
-			addedCves, modifiedCves := services.DoUpdate(nvdStatus)
+			sc := services.CreateServicesController(model.CreateDbConfig(*rootFlags), model.InitNvdStatus(), nil, model.CreateNotifier(*rootFlags))
+			addedCves, modifiedCves := services.DoUpdate(*sc)
 
 			wg.Add(1)
-			go services.DoUpdateDatabase(*dbConfig, addedCves, modifiedCves, nil, &wg)
-			wg.Add(1)
-			go nvdStatus.SaveStatus("./nvdStatus.json", &wg)
-
-			notifier := model.CreateNotifier(*rootFlags)
-			if notifier != nil {
-				content := fmt.Sprintf("Update Operation Completed\n%s - Added: %d, Modified: %d", utils.CurrentDateTime(), len(addedCves), len(modifiedCves))
-				notifier.SetContent(content)
-				notifier.Send()
-			}
+			go services.DoUpdateDatabase(*sc, addedCves, modifiedCves, nil, &wg)
 
 			wg.Wait()
 		},
@@ -112,8 +96,8 @@ func initSearchCmd(rootFlags *model.RootFlag) *cobra.Command {
 		Use:   "search",
 		Short: "CVE dict",
 		Run: func(cmd *cobra.Command, args []string) {
-			dbConfig := model.CreateDbConfig(*rootFlags)
-			cves := services.DoSearch(*dbConfig, *searchFlag)
+			sc := services.CreateServicesController(model.CreateDbConfig(*rootFlags), model.InitNvdStatus(), searchFlag, model.CreateNotifier(*rootFlags))
+			cves := services.DoSearch(*sc)
 
 			// fmt.Printf("CVEs: %d\n", len(cves))
 			services.DoOutput(cves, *searchFlag.GetOutputPathP())
@@ -136,10 +120,11 @@ func initServerCmd(rootFlags *model.RootFlag) *cobra.Command {
 		Use:   "server",
 		Short: "Start server",
 		Run: func(cmd *cobra.Command, args []string) {
-			dbConfig := model.CreateDbConfig(*rootFlags)
-			notifier := model.CreateNotifier(*rootFlags)
+			// dbConfig := model.CreateDbConfig(*rootFlags)
+			// notifier := model.CreateNotifier(*rootFlags)
+			sc := services.CreateServicesController(model.CreateDbConfig(*rootFlags), model.InitNvdStatus(), nil, model.CreateNotifier(*rootFlags))
 
-			server.Run(*serverFlag.GetPortP(), dbConfig, notifier)
+			server.Run(*serverFlag.GetPortP(), sc)
 		},
 	}
 

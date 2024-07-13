@@ -5,23 +5,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	model "cvedict/model"
 	services "cvedict/services"
-	utils "cvedict/utils"
 )
 
-var dbConfig *model.DbConfig = new(model.DbConfig) // global database configuration
-var notifier *model.Notifier = new(model.Notifier) // global notifier configuration
+var sc *services.ServicesConfig = new(services.ServicesConfig)
 
-func Run(port uint32, dbConf *model.DbConfig, n *model.Notifier) {
-	dbConfig = dbConf
-	notifier = n
+func Run(port uint32, servicesConfig *services.ServicesConfig) {
+	sc = servicesConfig
 
 	router := gin.Default()
 	router.GET("/cve/id/:cveid", handleCveId)    // exact match, i.e. CVE-2020-12345
 	router.GET("/cve/year/:year", handleCveYear) // equipvalent to /search?id=CVE-{year}
 	router.GET("/update", handleUpdate)
-
 	router.GET("/search", handleSearch) // when query string is provided, case-insensitive
 
 	router.Run(fmt.Sprintf(":%d", port))
@@ -30,7 +25,7 @@ func Run(port uint32, dbConf *model.DbConfig, n *model.Notifier) {
 func handleCveId(c *gin.Context) {
 	cveid := c.Param("cveid")
 	query := unpackUriVariable(map[string]string{"id": cveid}, true)
-	cves := services.QueryCves(*dbConfig, query)
+	cves := services.QueryCves(*sc, query)
 
 	c.JSON(200, gin.H{
 		"data":  cves,
@@ -41,7 +36,7 @@ func handleCveId(c *gin.Context) {
 func handleCveYear(c *gin.Context) {
 	year := c.Param("year")
 	query := unpackUriVariable(map[string]string{"id": fmt.Sprintf("CVE-%s-", year)}, false)
-	cves := services.QueryCves(*dbConfig, query)
+	cves := services.QueryCves(*sc, query)
 
 	c.JSON(200, gin.H{
 		"data":  cves,
@@ -50,11 +45,9 @@ func handleCveYear(c *gin.Context) {
 }
 
 func handleUpdate(c *gin.Context) {
-	nvdStatus := model.InitNvdStatus()
-	addedCves, modifiedCves := services.DoUpdate(nvdStatus)
+	addedCves, modifiedCves := services.DoUpdate(*sc)
 
-	go services.DoUpdateDatabase(*dbConfig, addedCves, modifiedCves, nil, nil)
-	go nvdStatus.SaveStatus("./nvdStatus.json", nil)
+	go services.DoUpdateDatabase(*sc, addedCves, modifiedCves, nil, nil)
 
 	c.JSON(200, gin.H{
 		"addedCvesCount":    len(addedCves),
@@ -63,11 +56,11 @@ func handleUpdate(c *gin.Context) {
 		"modifiedCves":      modifiedCves,
 	})
 
-	if notifier != nil {
-		content := fmt.Sprintf("Update Operation Completed\n%s - Added: %d, Modified: %d", utils.CurrentDateTime(), len(addedCves), len(modifiedCves))
-		notifier.SetContent(content)
-		notifier.Send()
-	}
+	// if sc.notifier != nil {
+	// 	content := fmt.Sprintf("Update Operation Completed\n%s - Added: %d, Modified: %d", utils.CurrentDateTime(), len(addedCves), len(modifiedCves))
+	// 	sc.notifier.SetContent(content)
+	// 	sc.notifier.Send()
+	// }
 }
 
 func handleSearch(c *gin.Context) {
@@ -80,7 +73,7 @@ func handleSearch(c *gin.Context) {
 	}
 
 	query := unpackQueryString(c.Request.URL.Query())
-	cves := services.QueryCves(*dbConfig, query)
+	cves := services.QueryCves(*sc, query)
 
 	c.JSON(200, gin.H{
 		"data":  cves,

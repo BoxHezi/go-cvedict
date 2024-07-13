@@ -9,64 +9,90 @@ import (
 	utils "cvedict/utils"
 )
 
-func DoUpdateDatabase(dbConfig model.DbConfig, addedCves, modifiedCves, deletedCves []model.Cve, wg *sync.WaitGroup) {
+type ServicesConfig struct {
+	dbConfig   *model.DbConfig
+	nvdStatus  *model.NvdStatus
+	searchFlag *model.SearchFlag
+	notifier   *model.Notifier
+}
+
+func CreateServicesController(dbConfig *model.DbConfig, nvdStatus *model.NvdStatus, searchFlag *model.SearchFlag, notifier *model.Notifier) *ServicesConfig {
+	sc := new(ServicesConfig)
+	sc.dbConfig = dbConfig
+	sc.nvdStatus = nvdStatus
+	sc.searchFlag = searchFlag
+	sc.notifier = notifier
+	return sc
+}
+
+func (sc ServicesConfig) doUpdateDatabase(addCves, modifiedCves, deletedCves []model.Cve, wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
 	}
 
-	client := db.Connect(db.ConstructUri(dbConfig.DbHost, dbConfig.DbPort))
+	client := db.Connect(db.ConstructUri(sc.dbConfig.DbHost, sc.dbConfig.DbPort))
 	defer db.Disconnect(client)
 
-	if len(addedCves) > 0 {
-		db.InsertMany(client, dbConfig.Database, dbConfig.Collection, addedCves)
+	if len(addCves) > 0 {
+		db.InsertMany(client, sc.dbConfig.Database, sc.dbConfig.Collection, addCves)
 	}
 
 	for _, c := range modifiedCves {
-		db.UpdateOne(client, dbConfig.Database, dbConfig.Collection, c.Id, c)
+		db.UpdateOne(client, sc.dbConfig.Database, sc.dbConfig.Collection, c.Id, c)
 	}
 
 	for _, c := range deletedCves {
-		db.DeleteOne(client, dbConfig.Database, dbConfig.Collection, c.Id)
+		db.DeleteOne(client, sc.dbConfig.Database, sc.dbConfig.Collection, c.Id)
 	}
 }
 
-// return: addedCves, modifiedCves
-func DoFetch(dbConfig model.DbConfig) ([]model.Cve, []model.Cve) {
-	addedCves, modifiedCves := fetchFromNvd(dbConfig)
-	return addedCves, modifiedCves
+func DoUpdateDatabase(sc ServicesConfig, addedCves, modifiedCves, deletedCves []model.Cve, wg *sync.WaitGroup) {
+	sc.doUpdateDatabase(addedCves, modifiedCves, deletedCves, wg)
 }
 
 // return: addedCves, modifiedCves
-func DoUpdate(nvdStatus *model.NvdStatus) ([]model.Cve, []model.Cve) {
-	addedCves := fetchAddedCves(nvdStatus.CveCount)            // get added cves
-	historyCves := fetchCvesHistory(nvdStatus.CveHistoryCount) // get cve history
+func (sc ServicesConfig) doFetch() ([]model.Cve, []model.Cve) {
+	addedCves, modifiedCves := fetchFromNvd(sc)
+	return addedCves, modifiedCves
+}
+
+func DoFetch(sc ServicesConfig) ([]model.Cve, []model.Cve) {
+	return sc.doFetch()
+}
+
+// return: addedCves, modifiedCves
+func (sc ServicesConfig) doUpdate() ([]model.Cve, []model.Cve) {
+	addedCves := fetchAddedCves(sc.nvdStatus.CveCount) // get added cves
+	historyCves := fetchCvesHistory(sc.nvdStatus.CveHistoryCount)
 
 	// ignore added cves, remove duplicate cve id, get ID for modified CVEs
 	modifiedIds := getModifiedIds(addedCves, historyCves)
 	modifiedCves := fetchModifiedCves(modifiedIds) // fetch modified CVEs
 
-	nvdStatus.SetCveCount(nvdStatus.CveCount + len(addedCves))
-	nvdStatus.SetCveHistoryCount(nvdStatus.CveHistoryCount + len(historyCves))
+	sc.nvdStatus.SetCveCount(sc.nvdStatus.CveCount + len(addedCves))
+	sc.nvdStatus.SetCveHistoryCount(sc.nvdStatus.CveHistoryCount + len(historyCves))
 
+	content := fmt.Sprintf("Update Operation Completed\n%s - Added: %d, Modified: %d", utils.CurrentDateTime(), len(addedCves), len(modifiedCves))
+	DoSendNotification(sc, content)
+	sc.nvdStatus.SaveStatus("./nvdStatus.json", nil)
 	return addedCves, modifiedCves
 }
 
-func DoSearch(dbConfig model.DbConfig, searchFlag model.SearchFlag) []model.Cve {
-	if searchFlag.IsEmpty() {
-		utils.LogError(fmt.Errorf("no id, year or description provided"))
-		return nil // return nil if there is no conditions passed in
-	}
+func DoUpdate(sc ServicesConfig) ([]model.Cve, []model.Cve) {
+	return sc.doUpdate()
+}
 
-	query := prepareQuery(searchFlag)
-	cves := QueryCves(dbConfig, query)
+func (sc ServicesConfig) doSearch() []model.Cve {
+	query := prepareQuery(*sc.searchFlag)
+	cves := QueryCves(sc, query)
 
-	if *searchFlag.GetCvssP() != 0 {
+	if *sc.searchFlag.GetCvssP() != 0 {
 		// mongodb store floating point in binary format
 		// comparison directly in mongodb can lead to unexpected results
 		// cvss score passed in will be compared and filtered after docs retrieved from mongodb
 		resultCves := []model.Cve{}
 		for _, c := range cves {
-			if c.FilterCvss(*searchFlag.GetCvssP()) {
+			if c.FilterCvss(*sc.searchFlag.GetCvssP()) {
 				resultCves = append(resultCves, c)
 			}
 		}
@@ -74,6 +100,26 @@ func DoSearch(dbConfig model.DbConfig, searchFlag model.SearchFlag) []model.Cve 
 	}
 
 	return cves
+}
+
+func DoSearch(sc ServicesConfig) []model.Cve {
+	if sc.searchFlag.IsEmpty() {
+		utils.LogError(fmt.Errorf("no id, year or description provided"))
+		return nil // return nil if there is no conditions passed in
+	}
+
+	return sc.doSearch()
+}
+
+func (sc ServicesConfig) doSendNotification(content string) {
+	sc.notifier.SetContent(content)
+	sc.notifier.Send()
+}
+
+func DoSendNotification(sc ServicesConfig, content string) {
+	if sc.notifier != nil {
+		sc.doSendNotification(content)
+	}
 }
 
 func DoOutput(cves []model.Cve, path string) {
