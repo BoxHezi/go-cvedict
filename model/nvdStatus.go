@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 	"sync"
+
+	"cvedict/utils"
 )
 
 // use NvdStatus to track the number of CVEs and CVE history
@@ -18,7 +20,11 @@ type NvdStatus struct {
 
 func InitNvdStatus() *NvdStatus {
 	nvdStatus := new(NvdStatus)
-	nvdStatus.LoadStatus("./nvdStatus.json")
+	err := nvdStatus.LoadStatus("./nvdStatus.json")
+	if err != nil {
+		utils.LogError(err)
+		return nil
+	}
 	return nvdStatus
 }
 
@@ -30,27 +36,29 @@ func (n *NvdStatus) SetCveHistoryCount(count int) {
 	n.CveHistoryCount = count
 }
 
-func (n *NvdStatus) LoadStatus(filename string) {
+func (n *NvdStatus) LoadStatus(filename string) error {
 	file, err := os.Open(filename)
 	if err != nil {
 		err = fmt.Errorf("local nvdStatus json file not found: %s", err)
-		log.Fatal(err)
+		return err
 	}
 	defer file.Close()
 
 	data, err := io.ReadAll(file) // read local nvdStatus json file
 	if err != nil {
-		log.Fatal(err)
+		return nil
 	}
 
 	var nvdStatus NvdStatus
 	err = json.Unmarshal(data, &nvdStatus)
 	if err != nil {
-		log.Fatal(err)
+		return nil
 	}
 
 	n.SetCveCount(nvdStatus.CveCount)
 	n.SetCveHistoryCount(nvdStatus.CveHistoryCount)
+
+	return nil
 }
 
 func (n *NvdStatus) SaveStatus(filename string, wg *sync.WaitGroup) {
