@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -96,6 +97,26 @@ func DeleteOne(client *mongo.Client, database, collection, cveId string) {
 		log.Fatal(err)
 	}
 	utils.LogInfo(fmt.Sprintf("Database: %s, Delete %s successfully", database, cveId))
+}
+
+func RenameCollection(client *mongo.Client, database, collection string) {
+	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel()
+
+	db := client.Database("admin")
+
+	newName := collection + "_" + utils.CurrentDateTime()
+	newName = strings.ReplaceAll(newName, " ", "_")
+	commands := bson.D{
+		{Key: "renameCollection", Value: fmt.Sprintf("%s.%s", database, collection)},
+		{Key: "to", Value: fmt.Sprintf("%s.%s", database, newName)},
+	}
+
+	result := db.RunCommand(ctx, commands)
+	if result.Err() != nil {
+		log.Fatal(result.Err())
+	}
+	fmt.Printf("Rename %s.%s to %s.%s successfully\n", database, collection, database, newName)
 }
 
 func Query(client *mongo.Client, database, collection string, filter bson.D) *mongo.Cursor {

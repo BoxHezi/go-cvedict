@@ -70,3 +70,11 @@ func (f *SearchFlag) GetCvssP() *float32 {
 func (f *SearchFlag) GetOutputPathP() *string {
 	return &f.outputPath
 }
+
+// type FetchFlag struct {
+// 	overwrite bool
+// }
+
+// func (f *FetchFlag) IsOverwrite() *bool {
+// 	return &f.overwrite
+// }

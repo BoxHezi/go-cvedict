@@ -63,6 +63,8 @@ func initFetchCmd(rootFlags *model.RootFlag) *cobra.Command {
 			dbConfig := model.CreateDbConfig(*rootFlags)
 
 			sc := services.CreateServicesController(dbConfig, model.InitNvdStatus(), nil, model.CreateNotifier(*rootFlags))
+			// rename collection before fetching (if needed)
+			services.DoRenameDbCollection(*sc)
 			services.DoFetch(*sc)
 		},
 	}

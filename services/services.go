@@ -131,3 +131,14 @@ func DoOutput(cves []model.Cve, path string) {
 	}
 	wg.Wait()
 }
+
+func (sc ServicesConfig) doRenameDbCollection() {
+	client := db.Connect(db.ConstructUri(sc.dbConfig.DbHost, sc.dbConfig.DbPort))
+	defer db.Disconnect(client)
+
+	db.RenameCollection(client, sc.dbConfig.Database, sc.dbConfig.Collection)
+}
+
+func DoRenameDbCollection(sc ServicesConfig) {
+	sc.doRenameDbCollection()
+}
