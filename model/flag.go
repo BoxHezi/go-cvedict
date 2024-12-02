@@ -71,10 +71,15 @@ func (f *SearchFlag) GetOutputPathP() *string {
 	return &f.outputPath
 }
 
-// type FetchFlag struct {
-// 	overwrite bool
-// }
+type FetchFlag struct {
+	deleteBackup bool
+	newName      string
+}
 
-// func (f *FetchFlag) IsOverwrite() *bool {
-// 	return &f.overwrite
-// }
+func (f *FetchFlag) GetDeleteBackup() *bool {
+	return &f.deleteBackup
+}
+
+func (f *FetchFlag) GetNewName() *string {
+	return &f.newName
+}

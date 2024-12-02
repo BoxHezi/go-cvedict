@@ -11,6 +11,7 @@ import (
 	server "cvedict/server"
 	services "cvedict/services"
 	db "cvedict/services/database"
+	utils "cvedict/utils"
 )
 
 func InitCmd() *cobra.Command {
@@ -56,6 +57,7 @@ func initRootCmd() (*cobra.Command, *model.RootFlag) {
 }
 
 func initFetchCmd(rootFlags *model.RootFlag) *cobra.Command {
+	var fetchFlag *model.FetchFlag = new(model.FetchFlag)
 	fetchCmd := &cobra.Command{
 		Use:   "fetch",
 		Short: "CVE dict",
@@ -64,10 +66,16 @@ func initFetchCmd(rootFlags *model.RootFlag) *cobra.Command {
 
 			sc := services.CreateServicesController(dbConfig, model.InitNvdStatus(), nil, model.CreateNotifier(*rootFlags))
 			// rename collection before fetching (if needed)
-			services.DoRenameDbCollection(*sc)
+			services.DoRenameDbCollection(*sc, *fetchFlag.GetNewName())
 			services.DoFetch(*sc)
+
+			if *fetchFlag.GetDeleteBackup() {
+				services.DoDropCollection(*sc, *fetchFlag.GetNewName())
+			}
 		},
 	}
+	fetchCmd.Flags().StringVar(fetchFlag.GetNewName(), "name", fmt.Sprintf("%s_%s", *rootFlags.GetCollectionP(), utils.CurrentDateTime(true)), "backup collection name")
+	fetchCmd.Flags().BoolVar(fetchFlag.GetDeleteBackup(), "delete-backup", false, "delete backup collection after fetching")
 
 	return fetchCmd
 }

@@ -57,3 +57,9 @@ func fetchFromNvd(sc ServicesConfig) ([]model.Cve, []model.Cve) {
 	wg.Wait()
 	return cves, nil
 }
+
+// return: addedCves, modifiedCves
+func (sc ServicesConfig) doFetch() ([]model.Cve, []model.Cve) {
+	addedCves, modifiedCves := fetchFromNvd(sc)
+	return addedCves, modifiedCves
+}
